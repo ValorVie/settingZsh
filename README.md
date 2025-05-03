@@ -21,7 +21,7 @@
 
 1. 確保您的系統具備基礎工具：
    ```bash
-   sudo apt update -y && sudo apt install -y zsh git
+   sudo apt update -y && sudo apt install -y zsh git xz-utils fontconfig
    ```
 
 2. 切換預設 Shell 為 Zsh：
