@@ -34,6 +34,12 @@
    chmod +x setup_env.sh
    ./setup_env.sh
    ```
+4. 更新套件（可選）：
+   ```bash
+   chmod +x update.sh
+   ./update.sh
+   ```
+
 
 ---
 
@@ -83,3 +89,10 @@
 
 - **Root 使用者：** 若以 root 身份執行腳本，請手動修改 `~/.zshrc` 中的環境變數路徑。
 - **重新登入：** 若切換 Shell 後未生效，請登出並重新登入。
+## 更新套件
+
+若要更新安裝的工具與字體，可執行：
+```bash
+./update.sh
+```
+
