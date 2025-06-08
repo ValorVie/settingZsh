@@ -23,7 +23,8 @@ curl -sS https://raw.githubusercontent.com/ajeetdsouza/zoxide/main/install.sh | 
 # 4. 更新 zinit 以及所有插件
 if command -v zsh >/dev/null 2>&1; then
   echo "=== 更新 Zinit 及其插件 ==="
-  zsh -i -c "source \${ZINIT_HOME:-\${HOME}/.local/share}/zinit/zinit.git/zinit.zsh && zinit self-update && zinit update --all"
+  ZINIT_HOME="${ZINIT_HOME:-${HOME}/.local/share/zinit/zinit.git}"
+  zsh -i -c "source ${ZINIT_HOME}/zinit.zsh && zinit self-update && zinit update --all"
 else
   echo "Zsh 尚未安裝，略過 Zinit 更新"
 fi
