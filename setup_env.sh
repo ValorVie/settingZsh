@@ -154,6 +154,9 @@ export PATH="$PATH:/root/.local/bin"
 eval "$(zoxide init --cmd cd zsh)"
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 
+# Shell working directory reporting
+precmd () { echo -n "\x1b]1337;CurrentDir=$(pwd)\x07" }
+
 # -----------------------------
 # Zsh 配置結束
 # -----------------------------
