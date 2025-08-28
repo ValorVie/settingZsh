@@ -15,10 +15,10 @@ if [ -f ~/.zshrc ]; then
 fi
 touch ~/.zshrc
 
-# 4. 安裝 Python 3.11 和 pip
-echo "=== 安裝 python3.11 與 pip... ==="
+# 4. 安裝 Python 3.13 和 pip
+echo "=== 安裝 python3.13 與 pip... ==="
 sudo apt update -y
-sudo apt install -y python3.11 python3-pip
+sudo apt install -y python3.13 python3-pip
 
 # 5. 下載並安裝 JetBrainsMono Nerd Font
 echo "=== 安裝 JetBrainsMono Nerd Font... ==="

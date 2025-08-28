@@ -28,6 +28,11 @@
    ```bash
    chsh -s /bin/zsh "$(whoami)"
    ```
+2.1. 如果無法切換預設 Shell，手動修改登入時的 shell，在 ~/.bashrc 或 ~/.profile 末尾加上：
+   ```bash
+   exec zsh
+   ```
+   這樣每次登入 bash 時會自動跳到 zsh。
 
 3. 下載並執行此腳本：
    ```bash
