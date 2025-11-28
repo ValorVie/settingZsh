@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# 此腳本將在 Ubuntu/Debian 環境上安裝並設定 zsh + zinit + fzf + python311 + nerd fonts 等環境
+# 此腳本將在 Ubuntu/Debian 環境上安裝並設定 zsh + zinit + fzf + python313 + nerd fonts 等環境
 # 使用方式：在終端機執行
 #   chmod +x setup_env.sh
 #   ./setup_env.sh

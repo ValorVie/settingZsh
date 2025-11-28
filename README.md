@@ -1,9 +1,9 @@
-# README: Zsh + Zinit + FZF + Python 3.11
+# README: Zsh + Zinit + FZF + Python 3.13
 
 ## 功能
 
 - 安裝並設定 **Zsh** 為預設 Shell
-- 安裝 **Python 3.11** 與 **pip**
+- 安裝 **Python 3.13** 與 **pip**
 - 安裝 **fzf**（模糊搜尋工具）
 - 安裝 **zoxide**（快速目錄切換工具）
 - 配置 **Zinit** 來管理 Zsh 插件
@@ -28,11 +28,11 @@
    ```bash
    chsh -s /bin/zsh "$(whoami)"
    ```
-2.1. 如果無法切換預設 Shell，手動修改登入時的 shell，在 ~/.bashrc 或 ~/.profile 末尾加上：
-   ```bash
-   exec zsh
-   ```
-   這樣每次登入 bash 時會自動跳到 zsh。
+   - 如果無法切換預設 Shell，手動修改登入時的 shell，在 ~/.bashrc 或 ~/.profile 末尾加上：
+      ```bash
+      exec zsh
+      ```
+      - 這樣每次登入 bash 時會自動跳到 zsh。
 
 3. 下載並執行此腳本：
    ```bash
