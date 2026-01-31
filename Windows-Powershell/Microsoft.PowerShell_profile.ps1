@@ -54,17 +54,24 @@ if (Test-Path "C:\Users\jack3\Documents\PowerShell\OpenSpecCompletion.ps1") {
 # =============================================================================
 # 互動功能增強 (PSReadLine - 類似 Zsh 的記憶功能)
 # =============================================================================
+# PS 5.1 不支援 Prediction 功能，需在 PS 7+ 才能使用
+$IsPS7OrLater = $PSVersionTable.PSVersion.Major -ge 7
+
 if (Get-Module -ListAvailable PSReadLine) {
-    # 設定預測來源為「歷史紀錄」
-    Set-PSReadLineOption -PredictionSource History
+    if ($IsPS7OrLater) {
+        # 設定預測來源為「歷史紀錄」
+        Set-PSReadLineOption -PredictionSource History
 
-    # 設定預測顯示風格為「清單模式」 (若喜歡 Zsh 灰字感，可將 ListView 改為 InlineView)
-    Set-PSReadLineOption -PredictionViewStyle ListView
+        # 設定預測顯示風格為「清單模式」 (若喜歡 Zsh 灰字感，可將 ListView 改為 InlineView)
+        Set-PSReadLineOption -PredictionViewStyle ListView
 
-    # 額外建議：設定 F2 鍵可以切換 ViewStyle (在清單與行內預測間切換)
-    Set-PSReadLineKeyHandler -Key F2 -Function SwitchPredictionView
+        # 額外建議：設定 F2 鍵可以切換 ViewStyle (在清單與行內預測間切換)
+        Set-PSReadLineKeyHandler -Key F2 -Function SwitchPredictionView
 
-    Write-Host " [UI] PSReadLine History Prediction Enabled." -ForegroundColor Magenta
+        Write-Host " [UI] PSReadLine History Prediction Enabled." -ForegroundColor Magenta
+    } else {
+        Write-Host " [UI] PSReadLine loaded (PS 5.1 - Prediction not supported)." -ForegroundColor DarkYellow
+    }
 }
 
 # =============================================================================
@@ -114,19 +121,22 @@ function reload { . $PROFILE } # 快速重載設定
 # 5. 互動功能增強 (PSReadLine + FZF)
 # =============================================================================
 if (Get-Module -ListAvailable PSReadLine) {
-    Set-PSReadLineOption -PredictionSource History
-    Set-PSReadLineOption -PredictionViewStyle ListView
-
-    # [顏色微調] 讓預測的文字在深色背景更明顯 (淡灰色)
-    Set-PSReadLineOption -Colors @{
-        "InlinePrediction" = "#808080"
-    }
-
-    # [鍵盤操作]
-    # F2: 切換顯示模式 (ListView <-> Inline)
-    Set-PSReadLineKeyHandler -Key F2 -Function SwitchPredictionView
-    # Tab: 自動完成 (選單式)
+    # Tab: 自動完成 (選單式) - PS 5.1 和 PS 7+ 都支援
     Set-PSReadLineKeyHandler -Key Tab -Function MenuComplete
+
+    if ($IsPS7OrLater) {
+        # PS 7+ 專用功能
+        Set-PSReadLineOption -PredictionSource History
+        Set-PSReadLineOption -PredictionViewStyle ListView
+
+        # [顏色微調] 讓預測的文字在深色背景更明顯 (淡灰色)
+        Set-PSReadLineOption -Colors @{
+            "InlinePrediction" = "#808080"
+        }
+
+        # F2: 切換顯示模式 (ListView <-> Inline)
+        Set-PSReadLineKeyHandler -Key F2 -Function SwitchPredictionView
+    }
 }
 
 # [PSFzf] 終極歷史搜尋 (需安裝 fzf 和 PSFzf)
