@@ -1,0 +1,6 @@
+active: all
+available:
+- uds
+- ecc
+- minimal
+last_updated: '2026-01-25'

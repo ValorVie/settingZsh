@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 #
 # 此腳本將在 Ubuntu/Debian 環境上安裝並設定 zsh + zinit + fzf + python313 + nerd fonts 等環境
-# 使用方式：在終端機執行
-#   chmod +x setup_env.sh
-#   ./setup_env.sh
+# 使用方式：透過統一入口執行
+#   chmod +x setup.sh
+#   ./setup.sh
 #
 # 注意：chsh 預設會更改目前執行此腳本的使用者的 shell，如果需要更改其他使用者可再調整參數。
 
@@ -20,21 +20,29 @@ echo "=== 安裝 python3.13 與 pip... ==="
 sudo apt update -y
 sudo apt install -y python3.13 python3-pip
 
-# 5. 下載並安裝 JetBrainsMono Nerd Font
-echo "=== 安裝 JetBrainsMono Nerd Font... ==="
-curl -OL https://github.com/ryanoasis/nerd-fonts/releases/latest/download/JetBrainsMono.tar.xz
-mkdir -p JetBrainsMono
-tar -xf JetBrainsMono.tar.xz -C JetBrainsMono
-mkdir -p ~/.local/share/fonts
-mv JetBrainsMono/JetBrainsMonoNerdFont-* ~/.local/share/fonts/
+# 5. 下載並安裝 Maple Mono NL NF CN (No-Ligature + Nerd Font + 中文)
+echo "=== 安裝 Maple Mono NL NF CN... ==="
+MAPLE_VERSION="v7.9"
+MAPLE_ARCHIVE="MapleMonoNL-NF-CN.zip"
+curl -OL "https://github.com/subframe7536/maple-font/releases/download/${MAPLE_VERSION}/${MAPLE_ARCHIVE}"
+mkdir -p MapleMono
+unzip -o "${MAPLE_ARCHIVE}" -d MapleMono
+mkdir -p ~/.local/share/fonts/MapleMono
+mv MapleMono/*.ttf ~/.local/share/fonts/MapleMono/ 2>/dev/null || mv MapleMono/*.otf ~/.local/share/fonts/MapleMono/ 2>/dev/null || true
 fc-cache -fv
+rm -f "${MAPLE_ARCHIVE}"
 
 # 6. 建立補完檔案的快取資料夾
 mkdir -p ~/.cache/zinit/completions
 
 # 7. 安裝 fzf
 echo "=== 安裝 fzf... ==="
-git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf
+if [ -d ~/.fzf ]; then
+    echo "fzf 已存在，執行更新..."
+    git -C ~/.fzf pull
+else
+    git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf
+fi
 ~/.fzf/install --all --key-bindings --completion --no-bash --no-fish  # 自動安裝，避免互動式詢問
 
 # 8. 安裝 zoxide

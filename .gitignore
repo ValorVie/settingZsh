@@ -1,0 +1,38 @@
+# Node
+node_modules/
+dist/
+
+# Python
+.venv
+__pycache__
+.pytest_cache/
+
+# macOS
+.DS_Store
+
+# Build artifacts
+build
+dist
+*.egg-info
+.coverage
+
+# 專案專用
+logs
+backups
+disabled
+.env
+
+# Test coverage output
+plugins/ecc-hooks/coverage
+
+
+# Personal settings
+meassage/
+message/
+.claude/settings.local.json
+HEARTBEAT.md
+SOUL.md
+IDENTITY.md
+USER.md
+TOOLS.md
+BOOTSTRAP.md

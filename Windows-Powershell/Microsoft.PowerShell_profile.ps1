@@ -36,8 +36,8 @@ if ($env:TERM_PROGRAM -eq "vscode") {
 # =============================================================================
 
 #region conda initialize
-If (Test-Path "C:\Users\jack3\miniconda3\Scripts\conda.exe") {
-    (& "C:\Users\jack3\miniconda3\Scripts\conda.exe" "shell.powershell" "hook") | Out-String | ?{$_} | Invoke-Expression
+If (Test-Path "$env:USERPROFILE\miniconda3\Scripts\conda.exe") {
+    (& "$env:USERPROFILE\miniconda3\Scripts\conda.exe" "shell.powershell" "hook") | Out-String | ?{$_} | Invoke-Expression
 }
 #endregion
 
@@ -47,8 +47,8 @@ if (Test-Path($ChocolateyProfile)) {
 }
 
 # OpenSpec completion
-if (Test-Path "C:\Users\jack3\Documents\PowerShell\OpenSpecCompletion.ps1") {
-    . "C:\Users\jack3\Documents\PowerShell\OpenSpecCompletion.ps1"
+if (Test-Path "$env:USERPROFILE\Documents\PowerShell\OpenSpecCompletion.ps1") {
+    . "$env:USERPROFILE\Documents\PowerShell\OpenSpecCompletion.ps1"
 }
 
 # =============================================================================
