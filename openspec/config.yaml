@@ -1,20 +1,51 @@
 schema: spec-driven
 
-# Project context (optional)
-# This is shown to AI when creating artifacts.
-# Add your tech stack, conventions, style guides, domain knowledge, etc.
-# Example:
-#   context: |
-#     Tech stack: TypeScript, React, Node.js
-#     We use conventional commits
-#     Domain: e-commerce platform
+context: |
+  ## 專案概述
+  個人跨平台 Shell 環境自動化設定工具（dotfiles bootstrapper）。
+  一鍵部署 Zsh/PowerShell 開發環境，涵蓋 Linux、macOS、Windows 三平台。
 
-# Per-artifact rules (optional)
-# Add custom rules for specific artifacts.
-# Example:
-#   rules:
-#     proposal:
-#       - Keep proposals under 500 words
-#       - Always include a "Non-goals" section
-#     tasks:
-#       - Break tasks into chunks of max 2 hours
+  ## 技術堆疊
+  - **Shell 腳本:** Bash (Linux/macOS)、PowerShell 5.1/7+ (Windows)、Batch (Windows 入口)
+  - **目標 Shell:** Zsh + Zinit (Unix)、PowerShell + Starship (Windows)
+  - **Prompt:** Powerlevel10k (Unix)、Starship (Windows)
+  - **插件管理:** Zinit (Zsh)、Install-Module (PowerShell)
+  - **工具:** fzf (模糊搜尋)、zoxide (目錄跳轉)、PSFzf / ZLocation (Windows 對應)
+  - **字型:** Maple Mono NL NF CN (Nerd Font + CJK)
+  - **套件管理:** apt (Linux)、Homebrew (macOS)、winget (Windows)
+
+  ## 檔案架構
+  - `setup.sh` / `update.sh` — Unix 統一入口（uname -s 偵測 OS）
+  - `setup_linux.sh` / `setup_mac.sh` — 平台專用安裝腳本
+  - `setup.bat` → `setup_win.ps1` — Windows 安裝
+  - `update_*.sh` / `update_win.ps1` — 各平台更新腳本
+  - `Windows-Powershell/` — PowerShell Profile
+  - `tests/` — 平台測試腳本
+  - `message/` — 問題排除文件
+
+  ## 開發規範
+  - **語言:** 所有文件、註解、commit 訊息使用繁體中文
+  - **Commit:** Conventional Commits 格式（feat/fix/docs/chore...）
+  - **腳本風格:**
+    - Bash: `set -e`、函式化、變數用大寫底線命名（如 `MAPLE_VERSION`）
+    - PowerShell: `$ErrorActionPreference`、區塊以註解分隔、使用 Write-Host 搭配 -ForegroundColor
+  - **跨平台一致性:** 三平台的安裝/更新流程邏輯保持對稱（相同工具、相同字型、相同版本）
+  - **容錯:** 安裝失敗時提供 fallback 提示，不中斷整體流程
+  - **冪等性:** 腳本可重複執行（檢查已存在再決定 clone 或 pull）
+
+rules:
+  proposal:
+    - 以繁體中文撰寫
+    - 控制在 500 字以內
+    - 必須包含「非目標 (Non-goals)」段落
+    - 說明影響的平台（Linux / macOS / Windows 或全部）
+  design:
+    - 每個決策需標明影響的平台
+    - 若涉及多平台，須說明各平台的差異處理方式
+  specs:
+    - 能力 (capability) 以功能為單位，而非以平台為單位
+    - 若行為因平台而異，在 spec 中以表格或條件列出
+  tasks:
+    - 依平台或功能分組，使用編號標題
+    - 每個 task 應可獨立驗證
+    - 涉及外部下載的 task 須標明 URL 和版本號
