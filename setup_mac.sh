@@ -67,14 +67,7 @@ cat << 'EOF' >> ~/.zshrc
 # Zsh 配置開始
 # -----------------------------
 
-if [ "$(whoami)" = "root" ]; then
-    export PATH="$PATH:/root/.local/bin"
-else
-    export PATH="$PATH:/home/$(whoami)/.local/bin"
-fi
-
-# Add env PATH
-# export PATH="$PATH:/root/.local/bin"
+export PATH="$PATH:$HOME/.local/bin"
 
 # Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.zshrc.
 # Initialization code that may require console input (password prompts, [y/n]
@@ -165,9 +158,6 @@ zstyle ':fzf-tab:complete:__zoxide_z:*' fzf-preview 'ls --color $realpath'
 alias ls='ls --color'
 # alias vim='nvim'
 # alias c='clear'
-
-# Add env PATH
-export PATH="$PATH:/root/.local/bin"
 
 # Shell integrations
 eval "$(zoxide init --cmd cd zsh)"
