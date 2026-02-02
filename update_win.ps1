@@ -1,11 +1,23 @@
 # =============================================================================
 # Windows 環境更新腳本
 # 更新 PowerShell 模組、fzf、Starship、Maple Mono 字型
+# 根據 features 標記檔決定是否更新 editor 環境
 # =============================================================================
 
 $ErrorActionPreference = "Continue"
 
 Write-Host "=== Windows 環境更新開始 ===" -ForegroundColor Cyan
+
+# 讀取已安裝模組
+$FeaturesPath = Join-Path $env:USERPROFILE ".settingzsh\features"
+$HasEditor = $false
+if (Test-Path $FeaturesPath) {
+    $Features = Get-Content $FeaturesPath
+    $HasEditor = $Features -contains "editor"
+} else {
+    # fallback：偵測 nvim 是否存在
+    $HasEditor = [bool](Get-Command nvim -ErrorAction SilentlyContinue)
+}
 
 # -----------------------------------------------------------------------------
 # 1. 更新 PowerShell 模組
@@ -83,6 +95,32 @@ try {
 } catch {
     Write-Host " [提示] 字型下載失敗，請手動下載：" -ForegroundColor Yellow
     Write-Host "   $MapleUrl" -ForegroundColor Yellow
+}
+
+# -----------------------------------------------------------------------------
+# 4. 更新 Editor 環境（僅在已安裝時執行）
+# -----------------------------------------------------------------------------
+if ($HasEditor) {
+    Write-Host ""
+    Write-Host "=== 更新 Editor 環境 ===" -ForegroundColor Cyan
+
+    if (Get-Command winget -ErrorAction SilentlyContinue) {
+        $EditorPackages = @("Neovim.Neovim", "CoreyButler.NVMforWindows", "BurntSushi.ripgrep.MSVC", "sharkdp.fd", "JesseDuffield.lazygit")
+        foreach ($pkg in $EditorPackages) {
+            Write-Host " [更新] winget upgrade $pkg..." -ForegroundColor Cyan
+            winget upgrade $pkg --accept-source-agreements --accept-package-agreements 2>$null
+        }
+    }
+
+    # 更新 Node.js LTS
+    if (Get-Command nvm -ErrorAction SilentlyContinue) {
+        Write-Host " [更新] Node.js LTS..." -ForegroundColor Cyan
+        nvm install lts 2>$null
+        nvm use lts 2>$null
+    }
+} else {
+    Write-Host ""
+    Write-Host " [略過] Editor 環境未安裝" -ForegroundColor DarkGray
 }
 
 # -----------------------------------------------------------------------------

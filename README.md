@@ -14,6 +14,7 @@
   - **zsh-syntax-highlighting**（語法高亮）
   - **zsh-autosuggestions**（命令建議）
   - 其他實用工具和命令片段
+- **（選裝）編輯器環境**：Vim、Neovim（LazyVim）、nvm、ripgrep、fd、lazygit
 
 ---
 
@@ -77,11 +78,25 @@
 | `update_linux.sh` | Linux 更新腳本 |
 | `update_mac.sh` | macOS 更新腳本 |
 | `update.bat` / `update_win.ps1` | Windows 更新腳本 |
+| `vim/.vimrc` | Vim 基礎配置（伺服器 fallback 用） |
+| `nvim/` | Neovim（LazyVim）完整配置 |
+| `lib/config_merge.py` | 配置檔合併引擎（Python 3.10+） |
+| `lib/pyproject.toml` | 合併引擎專案定義 |
+| `templates/` | Zsh 配置模板（從 setup 腳本提取） |
+| `tests/test_mac.sh` | macOS 環境驗證腳本 |
+| `tests/test_linux.sh` | Linux/WSL 環境驗證腳本 |
+| `tests/test_win.ps1` | Windows 環境驗證腳本 |
+| `tests/test_config_merge.py` | 合併引擎單元測試（pytest） |
 
 ### Linux / macOS 安裝內容
 
-- **備份原有 Zsh 配置檔：** 若已有 `.zshrc`，會自動備份為 `.zshrc.bak`
+- **智慧合併配置檔：** 使用 section markers 機制管理 `.zshrc` 和 `.vimrc`
+  - **首次安裝：** 寫入管理區段 + 空的使用者自訂區段
+  - **既有配置升級：** 自動去除重複設定，保留使用者獨有自訂
+  - **重複執行：** 僅更新管理區段，使用者自訂不受影響
+  - 每次合併後輸出差異摘要（移除的重複行、值衝突、保留的自訂行）
 - **安裝必要工具：**
+  - 安裝 **uv**（Python 環境管理）
   - 安裝 **Python 3.13** 與 **pip**
   - 安裝 **fzf** 與 **zoxide**
   - 自動下載並安裝 **Maple Mono NL NF CN** 字型
@@ -96,6 +111,108 @@
 - **安裝 PowerShell 模組：** Terminal-Icons、ZLocation、PSFzf
 - **透過 winget 安裝：** fzf、Starship
 - **下載並安裝 Maple Mono NL NF CN 字型**（自動安裝失敗時提示手動安裝）
+
+---
+
+## 編輯器環境（選裝）
+
+安裝腳本執行時會詢問是否安裝編輯器環境，預設**不安裝**（僅處理 Zsh）。選擇安裝後，會一併安裝以下工具：
+
+| 工具 | 說明 |
+| :--- | :--- |
+| **Vim** | 基礎文字編輯器（伺服器 SSH 環境 fallback） |
+| **Neovim** | 現代化編輯器，搭配 LazyVim 框架 |
+| **nvm** / **nvm-windows** | Node.js 版本管理器（LazyVim LSP 相依） |
+| **Node.js LTS** | 透過 nvm 安裝 |
+| **ripgrep** | 快速全文搜尋（Telescope 相依） |
+| **fd** | 快速檔案搜尋（Telescope 相依） |
+| **lazygit** | 終端 Git GUI（LazyVim 內建整合） |
+
+### 互動安裝流程
+
+```
+$ ./setup.sh
+=== Zsh 環境安裝 ===
+...（Zsh 基礎環境安裝）...
+
+是否安裝編輯器環境？(Vim + Neovim + nvm + 開發工具) [y/N]:
+```
+
+- 輸入 `y`：安裝完整編輯器環境
+- 直接 Enter 或輸入 `n`：僅保留 Zsh 環境
+
+安裝選擇會記錄在 `~/.settingzsh/features`（Windows：`%USERPROFILE%\.settingzsh\features`），`update.sh` 會據此決定更新範圍。
+
+### 各平台安裝差異
+
+| 工具 | macOS | Linux (Debian/Ubuntu) | Windows |
+| :--- | :--- | :--- | :--- |
+| Vim | `brew install vim` | `sudo apt install vim` | —（不安裝） |
+| Neovim | `brew install neovim` | GitHub Release tar.gz | `winget install Neovim.Neovim` |
+| nvm | curl 官方安裝腳本 | curl 官方安裝腳本 | `winget install CoreyButler.NVMforWindows` |
+| ripgrep | `brew install ripgrep` | `sudo apt install ripgrep` | `winget install BurntSushi.ripgrep.MSVC` |
+| fd | `brew install fd` | `sudo apt install fd-find` | `winget install sharkdp.fd` |
+| lazygit | `brew install lazygit` | GitHub Release binary | `winget install JesseDuffield.lazygit` |
+
+### LazyVim 使用方式
+
+本專案使用 [LazyVim](https://www.lazyvim.org/) 作為 Neovim 預設框架，已啟用以下 Extras：
+
+- `lang.python`、`lang.typescript`、`lang.rust`、`lang.php`
+- `lang.json`、`lang.markdown`
+- `formatting.prettier`、`linting.eslint`
+
+首次啟動 Neovim 時，LazyVim 會自動下載所有插件與 LSP 伺服器，請確保網路連線正常。
+
+```bash
+nvim   # 首次啟動會自動安裝插件
+```
+
+### 常用 Neovim 快鍵（VSCode 對照）
+
+| 功能 | VSCode | Neovim (LazyVim) |
+| :--- | :--- | :--- |
+| 檔案搜尋 | `Ctrl+P` | `<Space>ff` |
+| 全域搜尋 | `Ctrl+Shift+F` | `<Space>sg` |
+| 檔案總管 | `Ctrl+Shift+E` | `<Space>e` |
+| 快速修正 | `Ctrl+.` | `<Space>ca` |
+| 跳至定義 | `F12` | `gd` |
+| 查看參照 | `Shift+F12` | `gr` |
+| 重新命名 | `F2` | `<Space>cr` |
+| 格式化 | `Shift+Alt+F` | `<Space>cf` |
+| 終端機 | `` Ctrl+` `` | `<Space>ft` |
+| Git GUI | Source Control 面板 | `<Space>gg`（lazygit） |
+| 關閉檔案 | `Ctrl+W` | `<Space>bd` |
+| 分割視窗 | `Ctrl+\` | `<Space>-` / `<Space>\|` |
+| 切換緩衝區 | `Ctrl+Tab` | `<Space>,` |
+| 命令面板 | `Ctrl+Shift+P` | `<Space>:` |
+
+> **提示：** `<Space>` 即 Leader 鍵（空白鍵）。按下後稍等會顯示 which-key 選單，列出所有可用指令。
+
+### nvm 用法
+
+nvm 採用 lazy loading 機制，首次使用 `node`、`npm`、`npx` 或 `nvm` 時才會載入，不影響 shell 啟動速度。
+
+```bash
+# 查看已安裝版本
+nvm ls
+
+# 安裝特定版本
+nvm install 20
+
+# 切換版本
+nvm use 20
+
+# 設定預設版本
+nvm alias default 20
+```
+
+Windows 使用 nvm-windows，指令略有不同：
+```powershell
+nvm list
+nvm install lts
+nvm use lts
+```
 
 ---
 
@@ -153,6 +270,57 @@
 
 ---
 
+## 配置檔合併引擎
+
+Setup 腳本內部使用合併引擎管理 `.zshrc` 和 `.vimrc`，你也可以直接呼叫它來預覽或手動合併。
+
+### 預覽合併結果（不寫入）
+
+```bash
+uv run lib/config_merge.py \
+  --target ~/.zshrc \
+  --template templates/zshrc_base_mac.zsh \
+  --section zsh-base \
+  --type zsh \
+  --dry-run
+```
+
+輸出範例：
+
+```
+=== 配置檔合併摘要：.zshrc ===
+  管理區段：已寫入 (zsh-base)
+  移除重複：3 行
+    - alias ls='ls --color'
+    - setopt appendhistory
+    - bindkey '^f' autosuggest-accept
+  值衝突：0 行
+  保留自訂：5 行
+  備份檔案：~/.zshrc.bak.20260202-153000
+================================
+```
+
+### 選項說明
+
+| 選項 | 必填 | 說明 |
+| :--- | :--- | :--- |
+| `--target` | 是 | 目標檔案（如 `~/.zshrc`） |
+| `--template` | 是 | 模板檔案（如 `templates/zshrc_base_mac.zsh`） |
+| `--section` | 是 | 區段 ID（`zsh-base`、`editor`、`vimrc`） |
+| `--type` | 是 | 檔案類型：`zsh` 或 `vim` |
+| `--dry-run` | 否 | 僅輸出摘要，不寫入檔案 |
+| `--no-color` | 否 | 停用彩色輸出 |
+
+### 合併行為
+
+| 情境 | 行為 |
+| :--- | :--- |
+| 目標檔案不存在 | 全新寫入（管理區段 + 空的使用者區段） |
+| 目標已有 settingZsh 標記 | 僅更新對應的管理區段，使用者區段不動 |
+| 目標有內容但無標記（首次升級） | 備份原檔、自動去除與模板重複的行、保留使用者獨有設定 |
+
+---
+
 ## 常見問題
 
 1. **如何立即套用新設定？**
@@ -173,7 +341,7 @@
    - 使用終端機的設定選項更改字體為 **Maple Mono NL NF CN**。
 
 4. **如何進一步自訂 Zsh？**
-   - 編輯 `~/.zshrc` 文件，自訂自己的配置。
+   - 在 `~/.zshrc` 的 `settingZsh:user:begin` 和 `settingZsh:user:end` 標記之間加入自訂設定，重複執行 setup 腳本時不會被覆蓋。
    - 配置 **Powerlevel10k**，執行以下指令：
      ```bash
      p10k configure
@@ -191,6 +359,7 @@
 
 - **Root 使用者：** 若以 root 身份執行腳本，請手動修改 `~/.zshrc` 中的環境變數路徑。
 - **重新登入：** 若切換 Shell 後未生效，請登出並重新登入。
+- **配置合併：** `~/.zshrc` 中 `settingZsh:managed:*` 標記之間的內容由腳本管理，手動修改會在下次執行時被覆蓋。自訂設定請放在 `settingZsh:user` 區段內。
 
 ---
 

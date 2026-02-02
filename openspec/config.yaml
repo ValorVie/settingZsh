@@ -36,7 +36,6 @@ context: |
 rules:
   proposal:
     - 以繁體中文撰寫
-    - 控制在 500 字以內
     - 必須包含「非目標 (Non-goals)」段落
     - 說明影響的平台（Linux / macOS / Windows 或全部）
   design:

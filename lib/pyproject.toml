@@ -1,0 +1,6 @@
+[project]
+name = "settingzsh-config-merge"
+version = "0.1.0"
+description = "配置檔合併引擎"
+requires-python = ">=3.10"
+dependencies = []

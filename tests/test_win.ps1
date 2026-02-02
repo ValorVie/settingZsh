@@ -121,6 +121,96 @@ if (Test-Path $UpdateScript) {
     }
 }
 
+# =============================================================================
+# Editor 環境測試（僅在已安裝時執行）
+# =============================================================================
+
+$FeaturesPath = Join-Path $env:USERPROFILE ".settingzsh\features"
+$HasEditor = $false
+if (Test-Path $FeaturesPath) {
+    $Features = Get-Content $FeaturesPath
+    $HasEditor = $Features -contains "editor"
+} elseif (Get-Command nvim -ErrorAction SilentlyContinue) {
+    $HasEditor = $true
+}
+
+if ($HasEditor) {
+    Write-Host ""
+    Write-Host "=== Editor 環境測試 ===" -ForegroundColor Cyan
+
+    # --- Test 11: neovim ---
+    Write-Host "--- Test 11: neovim ---"
+    if (Get-Command nvim -ErrorAction SilentlyContinue) {
+        $nvimVer = nvim --version 2>$null | Select-Object -First 1
+        Test-Pass "nvim: $nvimVer"
+    } else {
+        Test-Fail "nvim NOT installed"
+    }
+
+    # --- Test 12: nvm ---
+    Write-Host "--- Test 12: nvm-windows ---"
+    if (Get-Command nvm -ErrorAction SilentlyContinue) {
+        Test-Pass "nvm-windows installed"
+    } else {
+        Test-Fail "nvm-windows NOT installed"
+    }
+
+    # --- Test 13: node ---
+    Write-Host "--- Test 13: node ---"
+    if (Get-Command node -ErrorAction SilentlyContinue) {
+        $nodeVer = node --version 2>$null
+        Test-Pass "node: $nodeVer"
+    } else {
+        Test-Fail "node NOT installed"
+    }
+
+    # --- Test 14: ripgrep ---
+    Write-Host "--- Test 14: ripgrep ---"
+    if (Get-Command rg -ErrorAction SilentlyContinue) {
+        Test-Pass "rg installed"
+    } else {
+        Test-Fail "ripgrep NOT installed"
+    }
+
+    # --- Test 15: fd ---
+    Write-Host "--- Test 15: fd ---"
+    if (Get-Command fd -ErrorAction SilentlyContinue) {
+        Test-Pass "fd installed"
+    } else {
+        Test-Fail "fd NOT installed"
+    }
+
+    # --- Test 16: lazygit ---
+    Write-Host "--- Test 16: lazygit ---"
+    if (Get-Command lazygit -ErrorAction SilentlyContinue) {
+        Test-Pass "lazygit installed"
+    } else {
+        Test-Fail "lazygit NOT installed"
+    }
+
+    # --- Test 17: nvim config ---
+    Write-Host "--- Test 17: Neovim 配置 ---"
+    $NvimConfigDir = Join-Path $env:LOCALAPPDATA "nvim"
+    if (Test-Path (Join-Path $NvimConfigDir "init.lua")) {
+        Test-Pass "nvim init.lua exists at $NvimConfigDir"
+    } else {
+        Test-Warn "nvim config not deployed yet"
+    }
+} else {
+    Write-Host ""
+    Write-Host "=== Editor 環境未安裝，略過 Editor 測試 ===" -ForegroundColor DarkGray
+}
+
+# --- Test: features file ---
+Write-Host ""
+Write-Host "--- Test: features 標記檔 ---"
+if (Test-Path $FeaturesPath) {
+    $content = (Get-Content $FeaturesPath) -join ", "
+    Test-Pass "features 檔案存在: $content"
+} else {
+    Test-Warn "features 檔案不存在（舊版安裝或尚未執行 setup）"
+}
+
 # --- Summary ---
 Write-Host ""
 Write-Host "===============================" -ForegroundColor Cyan

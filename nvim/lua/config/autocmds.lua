@@ -1,0 +1,3 @@
+-- 自訂自動命令
+-- LazyVim 已內建 trim trailing whitespace on save
+-- 此處預留給未來自訂需求
