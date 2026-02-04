@@ -5,6 +5,12 @@ set -e
 
 FEATURES_FILE="$HOME/.settingzsh/features"
 LAZYGIT_VERSION="0.44.1"
+RIPGREP_VERSION="14.1.1"
+FD_VERSION="10.2.0"
+
+has_sudo() {
+    sudo -n true 2>/dev/null
+}
 
 # 讀取已安裝模組
 has_feature() {
@@ -66,21 +72,44 @@ if has_feature "editor"; then
     echo ""
     echo "=== 更新 Editor 環境 ==="
 
+    mkdir -p ~/.local/bin
+
     # 更新 Neovim（重新下載最新版）
     echo "--- 更新 Neovim ---"
     curl -LO https://github.com/neovim/neovim/releases/latest/download/nvim-linux-x86_64.tar.gz
-    sudo tar xzf nvim-linux-x86_64.tar.gz -C /usr/local --strip-components=1
+    tar xzf nvim-linux-x86_64.tar.gz -C ~/.local --strip-components=1
     rm -f nvim-linux-x86_64.tar.gz
 
-    # 更新 apt 套件
-    echo "--- 更新 ripgrep, fd-find ---"
-    sudo apt install -y --only-upgrade ripgrep fd-find 2>/dev/null || true
+    # 更新 ripgrep, fd
+    if has_sudo; then
+        echo "--- 更新 ripgrep, fd-find (apt) ---"
+        sudo apt install -y --only-upgrade ripgrep fd-find 2>/dev/null || true
+    else
+        echo "--- 更新 ripgrep, fd (binary) ---"
+        if curl -Lo /tmp/ripgrep.tar.gz "https://github.com/BurntSushi/ripgrep/releases/download/${RIPGREP_VERSION}/ripgrep-${RIPGREP_VERSION}-x86_64-unknown-linux-musl.tar.gz" \
+            && tar xzf /tmp/ripgrep.tar.gz -C /tmp \
+            && install /tmp/ripgrep-${RIPGREP_VERSION}-x86_64-unknown-linux-musl/rg ~/.local/bin/; then
+            echo "ripgrep 已更新"
+        else
+            echo "⚠️  ripgrep 下載或安裝失敗"
+        fi
+        rm -rf /tmp/ripgrep.tar.gz /tmp/ripgrep-${RIPGREP_VERSION}-x86_64-unknown-linux-musl
+
+        if curl -Lo /tmp/fd.tar.gz "https://github.com/sharkdp/fd/releases/download/v${FD_VERSION}/fd-v${FD_VERSION}-x86_64-unknown-linux-musl.tar.gz" \
+            && tar xzf /tmp/fd.tar.gz -C /tmp \
+            && install /tmp/fd-v${FD_VERSION}-x86_64-unknown-linux-musl/fd ~/.local/bin/; then
+            echo "fd 已更新"
+        else
+            echo "⚠️  fd 下載或安裝失敗"
+        fi
+        rm -rf /tmp/fd.tar.gz /tmp/fd-v${FD_VERSION}-x86_64-unknown-linux-musl
+    fi
 
     # 更新 lazygit（重新下載最新版）
     echo "--- 更新 lazygit ---"
     curl -Lo lazygit.tar.gz "https://github.com/jesseduffield/lazygit/releases/download/v${LAZYGIT_VERSION}/lazygit_${LAZYGIT_VERSION}_Linux_x86_64.tar.gz"
     tar xzf lazygit.tar.gz lazygit
-    sudo install lazygit /usr/local/bin
+    install lazygit ~/.local/bin/
     rm -f lazygit lazygit.tar.gz
 
     # 更新 nvm
@@ -103,6 +132,21 @@ if has_feature "editor"; then
     echo "--- 更新 Neovim 插件 ---"
     if command -v nvim >/dev/null 2>&1; then
         nvim --headless "+Lazy! sync" +qa 2>/dev/null || true
+    fi
+
+    # 檢測舊版系統安裝
+    if [ -f /usr/local/bin/nvim ]; then
+        echo ""
+        echo "⚠️  偵測到舊版 Neovim 於 /usr/local/bin/nvim"
+        echo "    版本：$(/usr/local/bin/nvim --version 2>/dev/null | head -1 || echo '未知')"
+        echo "    此版本可能因 PATH 順序優先於新安裝的 ~/.local/bin/nvim"
+        echo "    建議移除：sudo rm /usr/local/bin/nvim"
+    fi
+    if [ -f /usr/local/bin/lazygit ]; then
+        echo ""
+        echo "⚠️  偵測到舊版 lazygit 於 /usr/local/bin/lazygit"
+        echo "    此版本可能因 PATH 順序優先於新安裝的 ~/.local/bin/lazygit"
+        echo "    建議移除：sudo rm /usr/local/bin/lazygit"
     fi
 else
     echo ""

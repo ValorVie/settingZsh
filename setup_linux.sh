@@ -13,6 +13,8 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 NVM_VERSION="v0.40.1"
 LAZYGIT_VERSION="0.44.1"
+RIPGREP_VERSION="14.1.1"
+FD_VERSION="10.2.0"
 
 # =============================================================================
 # 共用函式
@@ -41,12 +43,17 @@ save_features() {
     echo "已記錄安裝模組至 ~/.settingzsh/features"
 }
 
+has_sudo() {
+    sudo -n true 2>/dev/null
+}
+
 install_uv() {
     if command -v uv >/dev/null 2>&1; then
         echo "uv 已安裝，略過"
     else
         echo "=== 安裝 uv... ==="
         curl -LsSf https://astral.sh/uv/install.sh | sh
+        export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$PATH"
     fi
 }
 
@@ -110,9 +117,41 @@ install_zsh_env() {
 # =============================================================================
 
 install_editor_env() {
+    mkdir -p ~/.local/bin
+
     # 1. 安裝 build-essential, vim, ripgrep, fd
     echo "=== 安裝編輯器前置套件... ==="
-    sudo apt install -y build-essential vim ripgrep fd-find
+    if has_sudo; then
+        sudo apt install -y build-essential vim ripgrep fd-find
+    else
+        echo "無 sudo 權限，檢測已安裝的套件..."
+        command -v gcc >/dev/null 2>&1 || echo "⚠️  缺少 gcc (build-essential)，treesitter 語法解析器可能無法編譯"
+        command -v vim >/dev/null 2>&1 || echo "⚠️  缺少 vim（nvim 仍可正常使用）"
+        # ripgrep fallback
+        if ! command -v rg >/dev/null 2>&1; then
+            echo "--- 下載 ripgrep binary ---"
+            if curl -Lo /tmp/ripgrep.tar.gz "https://github.com/BurntSushi/ripgrep/releases/download/${RIPGREP_VERSION}/ripgrep-${RIPGREP_VERSION}-x86_64-unknown-linux-musl.tar.gz" \
+                && tar xzf /tmp/ripgrep.tar.gz -C /tmp \
+                && install /tmp/ripgrep-${RIPGREP_VERSION}-x86_64-unknown-linux-musl/rg ~/.local/bin/; then
+                echo "ripgrep 已安裝至 ~/.local/bin/rg"
+            else
+                echo "⚠️  ripgrep 下載或安裝失敗，Telescope 全文搜尋可能無法使用"
+            fi
+            rm -rf /tmp/ripgrep.tar.gz /tmp/ripgrep-${RIPGREP_VERSION}-x86_64-unknown-linux-musl
+        fi
+        # fd fallback
+        if ! command -v fd >/dev/null 2>&1 && ! command -v fdfind >/dev/null 2>&1; then
+            echo "--- 下載 fd binary ---"
+            if curl -Lo /tmp/fd.tar.gz "https://github.com/sharkdp/fd/releases/download/v${FD_VERSION}/fd-v${FD_VERSION}-x86_64-unknown-linux-musl.tar.gz" \
+                && tar xzf /tmp/fd.tar.gz -C /tmp \
+                && install /tmp/fd-v${FD_VERSION}-x86_64-unknown-linux-musl/fd ~/.local/bin/; then
+                echo "fd 已安裝至 ~/.local/bin/fd"
+            else
+                echo "⚠️  fd 下載或安裝失敗，Telescope 檔案搜尋可能退化"
+            fi
+            rm -rf /tmp/fd.tar.gz /tmp/fd-v${FD_VERSION}-x86_64-unknown-linux-musl
+        fi
+    fi
 
     # 2. 安裝 Neovim（從 GitHub Release）
     echo "=== 安裝 Neovim... ==="
@@ -120,9 +159,9 @@ install_editor_env() {
         echo "Neovim 已安裝：$(nvim --version | head -1)"
     else
         curl -LO https://github.com/neovim/neovim/releases/latest/download/nvim-linux-x86_64.tar.gz
-        sudo tar xzf nvim-linux-x86_64.tar.gz -C /usr/local --strip-components=1
+        tar xzf nvim-linux-x86_64.tar.gz -C ~/.local --strip-components=1
         rm -f nvim-linux-x86_64.tar.gz
-        echo "Neovim 已安裝至 /usr/local/bin/nvim"
+        echo "Neovim 已安裝至 ~/.local/bin/nvim"
     fi
 
     # 3. 安裝 lazygit（從 GitHub Release）
@@ -132,9 +171,24 @@ install_editor_env() {
     else
         curl -Lo lazygit.tar.gz "https://github.com/jesseduffield/lazygit/releases/download/v${LAZYGIT_VERSION}/lazygit_${LAZYGIT_VERSION}_Linux_x86_64.tar.gz"
         tar xzf lazygit.tar.gz lazygit
-        sudo install lazygit /usr/local/bin
+        install lazygit ~/.local/bin/
         rm -f lazygit lazygit.tar.gz
-        echo "lazygit 已安裝至 /usr/local/bin/lazygit"
+        echo "lazygit 已安裝至 ~/.local/bin/lazygit"
+    fi
+
+    # 檢測舊版系統安裝
+    if [ -f /usr/local/bin/nvim ]; then
+        echo ""
+        echo "⚠️  偵測到舊版 Neovim 於 /usr/local/bin/nvim"
+        echo "    版本：$(/usr/local/bin/nvim --version 2>/dev/null | head -1 || echo '未知')"
+        echo "    此版本可能因 PATH 順序優先於新安裝的 ~/.local/bin/nvim"
+        echo "    建議移除：sudo rm /usr/local/bin/nvim"
+    fi
+    if [ -f /usr/local/bin/lazygit ]; then
+        echo ""
+        echo "⚠️  偵測到舊版 lazygit 於 /usr/local/bin/lazygit"
+        echo "    此版本可能因 PATH 順序優先於新安裝的 ~/.local/bin/lazygit"
+        echo "    建議移除：sudo rm /usr/local/bin/lazygit"
     fi
 
     # 4. 安裝 nvm
