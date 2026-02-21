@@ -102,7 +102,12 @@ eval "$(zoxide init --cmd cd zsh)"
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 
 # Shell working directory reporting
-precmd () { echo -n "\x1b]1337;CurrentDir=$(pwd)\x07" }
+# iTerm2 CurrentDir (for iTerm2 / Tabby)
+# WezTerm OSC 7 (for WezTerm session restore)
+precmd () {
+  echo -n "\x1b]1337;CurrentDir=$(pwd)\x07"
+  printf '\e]7;file://%s%s\e\\' "$HOST" "$PWD"
+}
 
 # -----------------------------
 # Zsh 配置結束
