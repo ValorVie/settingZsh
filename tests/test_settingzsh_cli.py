@@ -60,3 +60,20 @@ def test_reconcile_legacy_markers_routes_to_migrate(
     result = run_reconcile(target_home=home)
     assert result.status in {"migrated", "reconciled"}
     assert "# >>> settingZsh bootstrap >>>" in (home / ".zshrc").read_text(encoding="utf-8")
+
+
+def test_reconcile_preserves_existing_managed_fragment(
+    tmp_path: Path, monkeypatch
+) -> None:
+    home = tmp_path / "home"
+    managed_dir = home / ".config" / "settingzsh" / "managed.d"
+    managed_dir.mkdir(parents=True, exist_ok=True)
+    base_fragment = managed_dir / "10-base.zsh"
+    base_fragment.write_text("export KEEP_EXISTING=1\n", encoding="utf-8")
+
+    monkeypatch.setattr("settingzsh.cli.validate_shell", lambda _: None)
+    result = run_reconcile(target_home=home)
+
+    assert result.status == "reconciled"
+    assert base_fragment.read_text(encoding="utf-8") == "export KEEP_EXISTING=1\n"
+    assert str(base_fragment) not in result.modified_files

@@ -37,6 +37,12 @@ def test_render_managed_fragments_shape() -> None:
     assert all(v.endswith("\n") for v in fragments.values())
 
 
+def test_render_managed_fragments_use_real_shell_content() -> None:
+    fragments = render_managed_fragments()
+    assert "ZINIT_HOME=" in fragments["10-base.zsh"]
+    assert "lazy_nvm()" in fragments["40-editor.zsh"]
+
+
 def test_setup_command_executes_preview_path(tmp_path: Path, monkeypatch) -> None:
     home = tmp_path / "home"
     home.mkdir(parents=True, exist_ok=True)

@@ -1,5 +1,25 @@
 from __future__ import annotations
 
+import platform
+from pathlib import Path
+
+
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+_TEMPLATES_DIR = _REPO_ROOT / "templates"
+
+
+def _read_template(name: str) -> str:
+    content = (_TEMPLATES_DIR / name).read_text(encoding="utf-8")
+    if content and not content.endswith("\n"):
+        content += "\n"
+    return content
+
+
+def _base_template_name(system_name: str) -> str:
+    if system_name == "Darwin":
+        return "zshrc_base_mac.zsh"
+    return "zshrc_base_linux.zsh"
+
 
 def render_bootstrap_block() -> str:
     lines = (
@@ -22,7 +42,8 @@ def render_init_zsh() -> str:
 
 
 def render_managed_fragments() -> dict[str, str]:
+    system_name = platform.system()
     return {
-        "10-base.zsh": "# settingZsh managed base fragment\n",
-        "40-editor.zsh": "# settingZsh managed editor fragment\n",
+        "10-base.zsh": _read_template(_base_template_name(system_name)),
+        "40-editor.zsh": _read_template("zshrc_editor.zsh"),
     }

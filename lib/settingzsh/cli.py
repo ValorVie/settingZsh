@@ -64,8 +64,12 @@ def _build_reconcile_write_plan(target_home: Path) -> dict[Path, str]:
         target_home / ".config" / "settingzsh" / "init.zsh": render_init_zsh(),
     }
     managed_dir = target_home / ".config" / "settingzsh" / "managed.d"
-    for filename, content in render_managed_fragments().items():
-        write_plan[managed_dir / filename] = content
+    for filename, default_content in render_managed_fragments().items():
+        target = managed_dir / filename
+        if target.exists():
+            write_plan[target] = target.read_text(encoding="utf-8")
+        else:
+            write_plan[target] = default_content
     return write_plan
 
 
