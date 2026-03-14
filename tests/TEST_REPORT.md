@@ -1,7 +1,7 @@
 # 測試報告：跨平台安裝腳本
 
-**測試日期：** 2026-02-01
-**測試人員：** Claude Code (Opus 4.5)
+**測試日期：** 2026-03-14
+**測試人員：** Codex (GPT-5)
 
 ---
 
@@ -22,6 +22,31 @@
 | Linux/WSL | 12 | 0 | 0 | **PASSED** |
 | Windows | 12 | 0 | 0 | **PASSED** |
 | macOS | - | - | - | 待測 |
+
+---
+
+## 2026-03-14 Bootstrap 化回歸驗證
+
+本次驗證聚焦在 Linux / macOS shell 流程改為 **Python CLI + bootstrap + managed.d** 之後，是否仍能維持既有功能並移除 `.zshrc` destructive fallback。
+
+### 實際執行結果
+
+| 驗證項目 | 結果 |
+|---|---|
+| `uv run pytest -q tests/test_settingzsh_*.py` | PASS（18 passed） |
+| `bash tests/test_mac.sh` | PASS |
+| `bash tests/test_linux.sh` | PASS |
+| `bash -n setup.sh setup_mac.sh setup_linux.sh update.sh update_mac.sh update_linux.sh tests/test_mac.sh tests/test_linux.sh` | PASS |
+
+### 本次確認事項
+
+- `setup_mac.sh` / `setup_linux.sh` 已改為呼叫 Python CLI `setup`
+- `update_mac.sh` / `update_linux.sh` 已改為呼叫 Python CLI `reconcile`
+- shell wrapper 不再保留 `.zshrc` destructive fallback
+- `reconcile` 會保留既有 managed fragments，不會覆寫已存在的 shell 片段
+- 預設 `managed.d` 片段改用真實模板內容，不再寫入 placeholder
+
+> 註：`tests/test_linux.sh` 在 macOS 主機上執行時，OS 偵測會以警告模式退化為靜態腳本驗證；wrapper / CLI 檢查仍會執行。
 
 ---
 

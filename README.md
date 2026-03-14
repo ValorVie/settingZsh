@@ -14,6 +14,10 @@
   - **zsh-syntax-highlighting**（語法高亮）
   - **zsh-autosuggestions**（命令建議）
   - 其他實用工具和命令片段
+- Linux / macOS 的 shell 狀態改由 **bootstrap + managed fragments** 維護
+  - `~/.zshrc` 只保留 `settingZsh bootstrap`
+  - 真正的 managed shell 設定在 `~/.config/settingzsh/managed.d/`
+  - 提供 `doctor`、`migrate`、`reconcile` 指令檢查與修復狀態
 - **（選裝）編輯器環境**：Vim、Neovim（LazyVim）、nvm、ripgrep、fd、lazygit
 
 ---
@@ -64,6 +68,36 @@
 
 ---
 
+## Shell 管理模型（Linux / macOS）
+
+從 2026-03 的重構開始，`settingZsh` 不再以 full-file merge 接管整份 `~/.zshrc`。
+
+- `~/.zshrc`
+  - 只需要保留一個 `settingZsh bootstrap` 區塊
+  - 該區塊會 `source "$HOME/.config/settingzsh/init.zsh"`
+- `~/.config/settingzsh/init.zsh`
+  - 避免重複載入
+  - 依序載入 `managed.d/*.zsh`
+- `~/.config/settingzsh/managed.d/`
+  - `10-base.zsh`：Zsh / Zinit / fzf / zoxide 基本設定
+  - `40-editor.zsh`：editor shell 整合（例如 `nvm` lazy loading）
+
+這個模型的目標是把本工具對 `~/.zshrc` 的影響縮到最小，只保證 bootstrap 與本工具自己的 managed fragments 存在，不主動重排其他工具寫入的區段。
+
+### 維護指令
+
+```bash
+uv run --directory lib python -m settingzsh.cli doctor
+uv run --directory lib python -m settingzsh.cli migrate
+uv run --directory lib python -m settingzsh.cli reconcile
+```
+
+- `doctor`：唯讀檢查舊版 markers、bootstrap 缺失與 shell 驗證結果
+- `migrate`：只搬移 `settingZsh` 自己留下的舊版 markers
+- `reconcile`：確保 bootstrap、`init.zsh`、預設 `managed.d` 檔案存在；既有 managed fragments 會保留
+
+---
+
 ## 腳本內容摘要
 
 ### 檔案結構
@@ -78,23 +112,25 @@
 | `update_linux.sh` | Linux 更新腳本 |
 | `update_mac.sh` | macOS 更新腳本 |
 | `update.bat` / `update_win.ps1` | Windows 更新腳本 |
+| `lib/settingzsh/` | Linux/macOS shell bootstrap CLI |
 | `vim/.vimrc` | Vim 基礎配置（伺服器 fallback 用） |
 | `nvim/` | Neovim（LazyVim）完整配置 |
-| `lib/config_merge.py` | 配置檔合併引擎（Python 3.10+） |
-| `lib/pyproject.toml` | 合併引擎專案定義 |
-| `templates/` | Zsh 配置模板（從 setup 腳本提取） |
+| `lib/config_merge.py` | 配置檔合併引擎（目前主要用於 `.vimrc` 與舊版輔助流程） |
+| `lib/pyproject.toml` | Python CLI / 合併工具專案定義 |
+| `templates/` | `managed.d` 片段來源模板 |
 | `tests/test_mac.sh` | macOS 環境驗證腳本 |
 | `tests/test_linux.sh` | Linux/WSL 環境驗證腳本 |
 | `tests/test_win.ps1` | Windows 環境驗證腳本 |
 | `tests/test_config_merge.py` | 合併引擎單元測試（pytest） |
+| `tests/test_settingzsh_*.py` | shell bootstrap CLI 單元測試（pytest） |
 
 ### Linux / macOS 安裝內容
 
-- **智慧合併配置檔：** 使用 section markers 機制管理 `.zshrc` 和 `.vimrc`
-  - **首次安裝：** 寫入管理區段 + 空的使用者自訂區段
-  - **既有配置升級：** 自動去除重複設定，保留使用者獨有自訂
-  - **重複執行：** 僅更新管理區段，使用者自訂不受影響
-  - 每次合併後輸出差異摘要（移除的重複行、值衝突、保留的自訂行）
+- **最小化 shell 接管：**
+  - `setup.sh` / `update.sh` 透過 Python CLI 維護 shell bootstrap
+  - `~/.zshrc` 只保留 bootstrap block，不再由本工具整份重寫
+  - managed shell 設定放在 `~/.config/settingzsh/managed.d/*.zsh`
+  - 若偵測到舊版 `settingZsh:managed:*` markers，使用 `migrate` 收斂到新結構
 - **安裝必要工具：**
   - 安裝 **uv**（Python 環境管理）
   - 安裝 **Python 3.13** 與 **pip**
@@ -229,12 +265,12 @@ nvm use lts
 
 ### 安裝 Maple Mono（各平台）
 
-- **Windows：** 下載 `MapleMono-NL-NF-CN-autohint.zip`，解壓後全選安裝
-- **macOS：** 下載 `MapleMono-NL-NF-CN.zip`，雙擊 `.ttf` 安裝
+- **Windows：** 下載 `MapleMonoNL-NF-CN.zip`，解壓後全選安裝
+- **macOS：** 下載 `MapleMonoNL-NF-CN.zip`，雙擊 `.ttf` 安裝
 - **Linux：**
   ```bash
   mkdir -p ~/.local/share/fonts/MapleMono
-  unzip MapleMono-NL-NF-CN.zip -d ~/.local/share/fonts/MapleMono
+  unzip MapleMonoNL-NF-CN.zip -d ~/.local/share/fonts/MapleMono
   fc-cache -fv
   ```
 
@@ -270,54 +306,30 @@ nvm use lts
 
 ---
 
-## 配置檔合併引擎
+## Shell 維護與診斷
 
-Setup 腳本內部使用合併引擎管理 `.zshrc` 和 `.vimrc`，你也可以直接呼叫它來預覽或手動合併。
-
-### 預覽合併結果（不寫入）
+Linux / macOS 的 shell 狀態現在由 Python CLI 管理：
 
 ```bash
-uv run lib/config_merge.py \
-  --target ~/.zshrc \
-  --template templates/zshrc_base_mac.zsh \
-  --section zsh-base \
-  --type zsh \
-  --dry-run
+uv run --directory lib python -m settingzsh.cli doctor
+uv run --directory lib python -m settingzsh.cli migrate
+uv run --directory lib python -m settingzsh.cli reconcile
 ```
 
-輸出範例：
+### 常見用途
 
-```
-=== 配置檔合併摘要：.zshrc ===
-  管理區段：已寫入 (zsh-base)
-  移除重複：3 行
-    - alias ls='ls --color'
-    - setopt appendhistory
-    - bindkey '^f' autosuggest-accept
-  值衝突：0 行
-  保留自訂：5 行
-  備份檔案：~/.zshrc.bak.20260202-153000
-================================
-```
-
-### 選項說明
-
-| 選項 | 必填 | 說明 |
-| :--- | :--- | :--- |
-| `--target` | 是 | 目標檔案（如 `~/.zshrc`） |
-| `--template` | 是 | 模板檔案（如 `templates/zshrc_base_mac.zsh`） |
-| `--section` | 是 | 區段 ID（`zsh-base`、`editor`、`vimrc`） |
-| `--type` | 是 | 檔案類型：`zsh` 或 `vim` |
-| `--dry-run` | 否 | 僅輸出摘要，不寫入檔案 |
-| `--no-color` | 否 | 停用彩色輸出 |
-
-### 合併行為
-
-| 情境 | 行為 |
+| 指令 | 用途 |
 | :--- | :--- |
-| 目標檔案不存在 | 全新寫入（管理區段 + 空的使用者區段） |
-| 目標已有 settingZsh 標記 | 僅更新對應的管理區段，使用者區段不動 |
-| 目標有內容但無標記（首次升級） | 備份原檔、自動去除與模板重複的行、保留使用者獨有設定 |
+| `doctor` | 檢查 bootstrap 是否存在、是否仍有舊版 markers、shell 驗證是否失敗 |
+| `migrate` | 將舊版 `settingZsh:managed:*` / `settingZsh:user` 結構搬到 `managed.d/` |
+| `reconcile` | 確保 bootstrap、`init.zsh`、預設 fragments 存在；既有 managed fragments 會保留 |
+
+### `config_merge.py` 的現況
+
+`lib/config_merge.py` 仍保留在 repo 中，但 Linux / macOS 的主要 `.zshrc` 流程已不再依賴它。目前主要用途是：
+
+- `.vimrc` 合併
+- 舊版 merge engine 測試與相容性維護
 
 ---
 
@@ -341,7 +353,8 @@ uv run lib/config_merge.py \
    - 使用終端機的設定選項更改字體為 **Maple Mono NL NF CN**。
 
 4. **如何進一步自訂 Zsh？**
-   - 在 `~/.zshrc` 的 `settingZsh:user:begin` 和 `settingZsh:user:end` 標記之間加入自訂設定，重複執行 setup 腳本時不會被覆蓋。
+   - 把自訂內容直接放在 `~/.zshrc` 的 bootstrap block 之外，或放到你自己的 source 檔。
+   - `settingZsh` 只會維護 `settingZsh bootstrap` 區塊與 `~/.config/settingzsh/` 內的 managed 檔案。
    - 配置 **Powerlevel10k**，執行以下指令：
      ```bash
      p10k configure
@@ -359,7 +372,9 @@ uv run lib/config_merge.py \
 
 - **Root 使用者：** 若以 root 身份執行腳本，請手動修改 `~/.zshrc` 中的環境變數路徑。
 - **重新登入：** 若切換 Shell 後未生效，請登出並重新登入。
-- **配置合併：** `~/.zshrc` 中 `settingZsh:managed:*` 標記之間的內容由腳本管理，手動修改會在下次執行時被覆蓋。自訂設定請放在 `settingZsh:user` 區段內。
+- **Bootstrap 區塊：** `~/.zshrc` 中 `settingZsh bootstrap` 區塊由本工具維護，其他內容保留給使用者或其他工具。
+- **Managed fragments：** `~/.config/settingzsh/managed.d/` 是本工具的 shell managed 區；若遺失可執行 `reconcile` 補齊。
+- **舊版標記：** 若仍看見 `settingZsh:managed:*` / `settingZsh:user`，先執行 `migrate`。
 
 ---
 
@@ -374,4 +389,3 @@ uv run lib/config_merge.py \
 ```
 update.bat
 ```
-
