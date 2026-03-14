@@ -1,0 +1,2 @@
+"""settingZsh Python CLI package."""
+
