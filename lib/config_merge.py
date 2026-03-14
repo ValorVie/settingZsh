@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
 """配置檔合併引擎 — 將模板區段合併至目標配置檔，保留使用者自訂內容。
 
+Linux / macOS 的主要 `.zshrc` 流程已改用 `settingzsh.cli` 的
+`doctor` / `migrate` / `reconcile`。本模組目前主要保留給：
+  1. `.vimrc` 合併
+  2. 舊版 zsh section 的相容性維護
+
 支援 zsh (#) 與 vim (") 兩種註解格式，提供三種合併路徑：
   1. 全新安裝（目標不存在）
   2. 已有標記（僅替換管理區段）
@@ -25,6 +30,7 @@ from pathlib import Path
 # ---------------------------------------------------------------------------
 
 MARKER_PREFIX = "settingZsh"
+LEGACY_ZSH_SECTIONS = {"zsh-base", "editor"}
 
 # 結束碼
 EXIT_SUCCESS = 0
@@ -96,6 +102,17 @@ def _is_marker_line(line: str) -> bool:
         if stripped.startswith(f"{cc} === {MARKER_PREFIX}:") and stripped.endswith(" ==="):
             return True
     return False
+
+
+def _legacy_zsh_guidance(section_id: str, file_type: str) -> str | None:
+    """回傳舊版 zsh flow 的提示文字。"""
+    if file_type == "zsh" and section_id in LEGACY_ZSH_SECTIONS:
+        return (
+            "注意：Linux/macOS 的主要 .zshrc 流程已改用 "
+            "settingzsh.cli 的 doctor / migrate / reconcile；"
+            "config_merge.py 目前主要保留給 .vimrc 與舊版相容流程。"
+        )
+    return None
 
 
 # ---------------------------------------------------------------------------
@@ -530,7 +547,10 @@ def merge(
 def build_parser() -> argparse.ArgumentParser:
     """建構 CLI 參數解析器。"""
     parser = argparse.ArgumentParser(
-        description="配置檔合併引擎 — 將模板區段合併至目標配置檔，保留使用者自訂內容。",
+        description=(
+            "配置檔合併引擎 — 主要保留給 .vimrc 與舊版 zsh section 維護；"
+            "Linux/macOS 的主要 .zshrc 流程請改用 settingzsh.cli。"
+        ),
     )
     parser.add_argument(
         "--target",
@@ -594,6 +614,10 @@ def main(argv: list[str] | None = None) -> int:
     section_id = args.section
     file_type = args.file_type
     dry_run = args.dry_run
+
+    guidance = _legacy_zsh_guidance(section_id, file_type)
+    if guidance is not None:
+        print(guidance, file=sys.stderr)
 
     # --- 路徑 1：全新安裝 ---
     if target_empty:

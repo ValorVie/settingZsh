@@ -520,6 +520,13 @@ class TestMultipleManagedSections:
 class TestCLIArgumentParsing:
     """CLI 參數解析：缺少必要參數應回傳錯誤。"""
 
+    def test_parser_description_mentions_legacy_zsh_flow(self) -> None:
+        """CLI 說明應標示主要 zsh 流程已改用 settingzsh.cli。"""
+        parser = build_parser()
+
+        assert "settingzsh.cli" in parser.description
+        assert ".vimrc" in parser.description
+
     def test_missing_required_args_exits_with_error(self) -> None:
         """未提供 --target 等必要參數時，argparse 應拋出 SystemExit(2)。"""
         with pytest.raises(SystemExit) as exc_info:
@@ -560,6 +567,26 @@ class TestCLIArgumentParsing:
         ])
 
         assert exit_code == EXIT_ERROR
+
+    def test_zsh_section_emits_legacy_guidance(
+        self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        """處理舊版 zsh section 時應提示改用 settingzsh.cli。"""
+        target = tmp_path / ".zshrc"
+        template = tmp_path / "tpl"
+        _write(template, "export TEST=1\n")
+
+        exit_code = main([
+            "--target", str(target),
+            "--template", str(template),
+            "--section", "zsh-base",
+            "--type", "zsh",
+            "--dry-run",
+        ])
+
+        captured = capsys.readouterr()
+        assert exit_code == EXIT_FRESH_INSTALL
+        assert "settingzsh.cli" in captured.err
 
 
 # ---------------------------------------------------------------------------
