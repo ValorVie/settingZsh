@@ -1,441 +1,406 @@
-# README: Zsh + Zinit + FZF + Python 3.13
+# settingZsh
 
-## 功能
+跨平台 shell / profile baseline，現在以 `chezmoi` 作為主要控制面，支援 macOS、Linux、Windows，並保留 `public baseline + custom private repo` 的 SSH 分層模型。
 
-- 安裝並設定 **Zsh** 為預設 Shell
-- 安裝 **Python 3.13** 與 **pip**
-- 安裝 **fzf**（模糊搜尋工具）
-- 安裝 **zoxide**（快速目錄切換工具）
-- 配置 **Zinit** 來管理 Zsh 插件
-- 安裝並設定 **Maple Mono NL NF CN**
-- 預設 Zsh 插件包含：
-  - **Powerlevel10k**（高效能 Zsh 提示行）
-  - **fzf-tab**（fzf 選單自動補全）
-  - **zsh-syntax-highlighting**（語法高亮）
-  - **zsh-autosuggestions**（命令建議）
-  - 其他實用工具和命令片段
-- Linux / macOS 的 shell 狀態改由 **bootstrap + managed fragments** 維護
-  - `~/.zshrc` 只保留 `settingZsh bootstrap`
-  - 真正的 managed shell 設定在 `~/.config/settingzsh/managed.d/`
-  - 提供 `doctor`、`migrate`、`reconcile` 指令檢查與修復狀態
-- **（選裝）編輯器環境**：Vim、Neovim（LazyVim）、nvm、ripgrep、fd、lazygit
+## 這個 repo 會做什麼
 
----
+- 管理 macOS / Linux 的 `~/.zshrc` bootstrap 與 `~/.config/settingzsh/managed.d/*.zsh`
+- 管理 Windows PowerShell 5.1 / 7+ profile target 與共用 baseline
+- 透過 `chezmoi run_*` scripts 安裝 base tools、字型與選配 editor 工具
+- 提供 `.ssh/config` 主檔與 `config.d` 分層骨架
+- 保留 Linux / macOS 的 `doctor`、`migrate`、`reconcile` CLI，供舊環境遷移與診斷
 
-## 安裝步驟
+## 設計原則
 
-### Linux / macOS（統一入口）
+- `public repo` 只管 baseline 與非機密設定
+- SSH keys 與私有 host 規則放在你自己的 `custom private repo`
+- `~/.ssh/config` 主檔永遠由 public baseline 管理
+- `custom private repo` 只應該提供 `~/.ssh/**`
+- `known_hosts` 預設不進版控
+- 新安裝以 `chezmoi` 為主；舊的 `setup*.sh` / `update*.sh` 保留作遷移期參考與回歸驗證
 
-1. **Linux** — 確保系統具備基礎工具：
-   ```bash
-   sudo apt update -y && sudo apt install -y zsh git xz-utils fontconfig unzip
-   ```
-   **macOS** — 確保已安裝 [Homebrew](https://brew.sh/)（腳本會自動透過 brew 安裝所需套件）。
+## 需求
 
-2. 切換預設 Shell 為 Zsh（Linux）：
-   ```bash
-   chsh -s /bin/zsh "$(whoami)"
-   ```
-   - 如果無法切換預設 Shell，手動修改登入時的 shell，在 ~/.bashrc 或 ~/.profile 末尾加上：
-      ```bash
-      exec zsh
-      ```
+### 共通
 
-3. 執行安裝腳本（自動偵測 Linux/macOS）：
-   ```bash
-   chmod +x setup.sh
-   ./setup.sh
-   ```
+- Git
+- 網路連線
+- 你的 public repo URL
 
-4. 更新套件（可選）：
-   ```bash
-   chmod +x update.sh
-   ./update.sh
-   ```
+### macOS
+
+- Homebrew
+- `chezmoi`
+
+### Linux
+
+- `curl`
+- `tar`
+- `unzip`
+- `chezmoi`
 
 ### Windows
 
-1. 執行安裝腳本（自動部署 PowerShell Profile、安裝模組與字型）：
-   ```
-   setup.bat
-   ```
+- PowerShell
+- `winget`
+- `chezmoi`
 
-2. 更新套件（可選）：
-   ```
-   update.bat
-   ```
+## 快速開始
 
-### chezmoi 遷移規劃（進行中）
+### 1. 安裝 chezmoi
 
-目前已建立 `settingZsh -> chezmoi` 的遷移設計與 capability parity matrix：
+官方文件：
+- [Quick Start](https://www.chezmoi.io/quick-start/)
+- [Install chezmoi](https://www.chezmoi.io/install/)
 
-- `docs/plans/2026-03-15-settingzsh-chezmoi-migration-design.md`
-- `docs/plans/2026-03-15-settingzsh-chezmoi-migration.md`
-- `docs/plans/2026-03-15-settingzsh-capability-parity.md`
+範例：
 
-後續遷移會以 parity matrix 為準，確保既有 macOS / Linux / Windows 可見結果不退化。
-
-Task 2 目前已建立 public baseline source state：
-
-- `home/dot_zshrc.tmpl`
-- `home/private_dot_ssh/config.tmpl`
-- `home/private_dot_ssh/config.d/10-common.conf.tmpl`
-- `home/dot_config/settingzsh/powershell/public-baseline.ps1.tmpl`
-- `home/Documents/PowerShell/Microsoft.PowerShell_profile.ps1.tmpl`
-- `home/Documents/WindowsPowerShell/Microsoft.PowerShell_profile.ps1.tmpl`
-- `tests/chezmoi/test_source_state.sh`
-
-Task 3 目前已建立 zsh baseline fragments（chezmoi 模型）：
-
-- `home/dot_config/settingzsh/init.zsh.tmpl`
-- `home/dot_config/settingzsh/managed.d/10-base.zsh.tmpl`
-- `home/dot_config/settingzsh/managed.d/40-editor.zsh.tmpl`
-- `tests/chezmoi/test_zsh_baseline.sh`
-- `templates/zshrc_base_mac.zsh`（調整為 managed fragment compatibility source）
-- `templates/zshrc_base_linux.zsh`（調整為 managed fragment compatibility source）
-
-Task 4 目前已建立 platform install run scripts（chezmoi 模型）：
-
-- `run_once_before_10-install-base-packages.sh.tmpl`
-- `run_once_before_20-install-fonts.sh.tmpl`
-- `run_onchange_after_30-install-editor.sh.tmpl`
-- `run_once_before_10-install-base-packages.ps1.tmpl`
-- `run_once_before_20-install-fonts.ps1.tmpl`
-- `run_onchange_after_30-install-editor.ps1.tmpl`
-- `tests/chezmoi/test_scripts_presence.sh`
-
-Task 5 目前已收斂 Linux 無 sudo fallback 與 Windows profile/modules parity：
-
-- `run_once_before_10-install-base-packages.sh.tmpl`（non-interactive sudo 檢查）
-- `run_onchange_after_30-install-editor.sh.tmpl`（Linux fallback：ripgrep / fd / neovim / lazygit）
-- `run_once_before_10-install-base-packages.ps1.tmpl`（Windows module parity guard）
-- `home/dot_config/settingzsh/powershell/public-baseline.ps1.tmpl`
-- `home/Documents/PowerShell/Microsoft.PowerShell_profile.ps1.tmpl`
-- `home/Documents/WindowsPowerShell/Microsoft.PowerShell_profile.ps1.tmpl`
-- `tests/chezmoi/test_linux_fallback.sh`
-- `tests/chezmoi/test_windows_profile.ps1`
-
-
----
-
-## Shell 管理模型（Linux / macOS）
-
-從 2026-03 的重構開始，`settingZsh` 不再以 full-file merge 接管整份 `~/.zshrc`。
-
-- `~/.zshrc`
-  - 只需要保留一個 `settingZsh bootstrap` 區塊
-  - 該區塊會 `source "$HOME/.config/settingzsh/init.zsh"`
-- `~/.config/settingzsh/init.zsh`
-  - 避免重複載入
-  - 依序載入 `managed.d/*.zsh`
-- `~/.config/settingzsh/managed.d/`
-  - `10-base.zsh`：Zsh / Zinit / fzf / zoxide 基本設定
-  - `40-editor.zsh`：editor shell 整合（例如 `nvm` lazy loading）
-
-這個模型的目標是把本工具對 `~/.zshrc` 的影響縮到最小，只保證 bootstrap 與本工具自己的 managed fragments 存在，不主動重排其他工具寫入的區段。
-
-### 維護指令
+**macOS**
 
 ```bash
-uv run --directory lib python -m settingzsh.cli doctor
-uv run --directory lib python -m settingzsh.cli migrate
-uv run --directory lib python -m settingzsh.cli reconcile
+brew install chezmoi
 ```
 
-- `doctor`：唯讀檢查舊版 markers、bootstrap 缺失與 shell 驗證結果
-- `migrate`：只搬移 `settingZsh` 自己留下的舊版 markers
-- `reconcile`：確保 bootstrap、`init.zsh`、預設 `managed.d` 檔案存在；既有 managed fragments 會保留
-
----
-
-## 腳本內容摘要
-
-### 檔案結構
-
-| 檔案 | 說明 |
-| :--- | :--- |
-| `setup.sh` | Unix 統一入口（自動偵測 Linux/macOS） |
-| `setup_linux.sh` | Linux（apt）安裝腳本 |
-| `setup_mac.sh` | macOS（Homebrew）安裝腳本 |
-| `setup.bat` / `setup_win.ps1` | Windows 安裝腳本 |
-| `update.sh` | Unix 統一更新入口 |
-| `update_linux.sh` | Linux 更新腳本 |
-| `update_mac.sh` | macOS 更新腳本 |
-| `update.bat` / `update_win.ps1` | Windows 更新腳本 |
-| `lib/settingzsh/` | Linux/macOS shell bootstrap CLI |
-| `vim/.vimrc` | Vim 基礎配置（伺服器 fallback 用） |
-| `nvim/` | Neovim（LazyVim）完整配置 |
-| `lib/config_merge.py` | 配置檔合併引擎（目前主要用於 `.vimrc` 與舊版輔助流程） |
-| `lib/pyproject.toml` | Python CLI / 合併工具專案定義 |
-| `templates/` | `managed.d` 片段來源模板 |
-| `tests/test_mac.sh` | macOS 環境驗證腳本 |
-| `tests/test_linux.sh` | Linux/WSL 環境驗證腳本 |
-| `tests/test_win.ps1` | Windows 環境驗證腳本 |
-| `tests/test_config_merge.py` | 合併引擎單元測試（pytest） |
-| `tests/test_settingzsh_*.py` | shell bootstrap CLI 單元測試（pytest） |
-
-### Linux / macOS 安裝內容
-
-- **最小化 shell 接管：**
-  - `setup.sh` / `update.sh` 透過 Python CLI 維護 shell bootstrap
-  - `~/.zshrc` 只保留 bootstrap block，不再由本工具整份重寫
-  - managed shell 設定放在 `~/.config/settingzsh/managed.d/*.zsh`
-  - 若偵測到舊版 `settingZsh:managed:*` markers，使用 `migrate` 收斂到新結構
-- **安裝必要工具：**
-  - 安裝 **uv**（Python 環境管理）
-  - 安裝 **Python 3.13** 與 **pip**
-  - 安裝 **fzf** 與 **zoxide**
-  - 自動下載並安裝 **Maple Mono NL NF CN** 字型
-- **自動配置 Zsh 插件：**
-  - 使用 **Zinit** 安裝和管理插件
-  - 預設啟用高效能提示行（Powerlevel10k）
-  - 提供多種實用的 Zsh 設定和快捷鍵
-
-### Windows 安裝內容
-
-- **自動部署 PowerShell Profile** 至正確路徑（支援 PS 5.1 和 7+）
-- **安裝 PowerShell 模組：** Terminal-Icons、ZLocation、PSFzf
-- **透過 winget 安裝：** fzf、Starship
-- **下載並安裝 Maple Mono NL NF CN 字型**（自動安裝失敗時提示手動安裝）
-
----
-
-## 編輯器環境（選裝）
-
-安裝腳本執行時會詢問是否安裝編輯器環境，預設**不安裝**（僅處理 Zsh）。選擇安裝後，會一併安裝以下工具：
-
-| 工具 | 說明 |
-| :--- | :--- |
-| **Vim** | 基礎文字編輯器（伺服器 SSH 環境 fallback） |
-| **Neovim** | 現代化編輯器，搭配 LazyVim 框架 |
-| **nvm** / **nvm-windows** | Node.js 版本管理器（LazyVim LSP 相依） |
-| **Node.js LTS** | 透過 nvm 安裝 |
-| **ripgrep** | 快速全文搜尋（Telescope 相依） |
-| **fd** | 快速檔案搜尋（Telescope 相依） |
-| **lazygit** | 終端 Git GUI（LazyVim 內建整合） |
-
-### 互動安裝流程
-
-```
-$ ./setup.sh
-=== Zsh 環境安裝 ===
-...（Zsh 基礎環境安裝）...
-
-是否安裝編輯器環境？(Vim + Neovim + nvm + 開發工具) [y/N]:
-```
-
-- 輸入 `y`：安裝完整編輯器環境
-- 直接 Enter 或輸入 `n`：僅保留 Zsh 環境
-
-安裝選擇會記錄在 `~/.settingzsh/features`（Windows：`%USERPROFILE%\.settingzsh\features`），`update.sh` 會據此決定更新範圍。
-
-### 各平台安裝差異
-
-| 工具 | macOS | Linux (Debian/Ubuntu) | Windows |
-| :--- | :--- | :--- | :--- |
-| Vim | `brew install vim` | `sudo apt install vim` | —（不安裝） |
-| Neovim | `brew install neovim` | GitHub Release tar.gz | `winget install Neovim.Neovim` |
-| nvm | curl 官方安裝腳本 | curl 官方安裝腳本 | `winget install CoreyButler.NVMforWindows` |
-| ripgrep | `brew install ripgrep` | `sudo apt install ripgrep` | `winget install BurntSushi.ripgrep.MSVC` |
-| fd | `brew install fd` | `sudo apt install fd-find` | `winget install sharkdp.fd` |
-| lazygit | `brew install lazygit` | GitHub Release binary | `winget install JesseDuffield.lazygit` |
-
-### LazyVim 使用方式
-
-本專案使用 [LazyVim](https://www.lazyvim.org/) 作為 Neovim 預設框架，已啟用以下 Extras：
-
-- `lang.python`、`lang.typescript`、`lang.rust`、`lang.php`
-- `lang.json`、`lang.markdown`
-- `formatting.prettier`、`linting.eslint`
-
-首次啟動 Neovim 時，LazyVim 會自動下載所有插件與 LSP 伺服器，請確保網路連線正常。
+**Linux**
 
 ```bash
-nvim   # 首次啟動會自動安裝插件
+sh -c "$(curl -fsLS get.chezmoi.io)"
 ```
 
-### 常用 Neovim 快鍵（VSCode 對照）
+**Windows**
 
-| 功能 | VSCode | Neovim (LazyVim) |
-| :--- | :--- | :--- |
-| 檔案搜尋 | `Ctrl+P` | `<Space>ff` |
-| 全域搜尋 | `Ctrl+Shift+F` | `<Space>sg` |
-| 檔案總管 | `Ctrl+Shift+E` | `<Space>e` |
-| 快速修正 | `Ctrl+.` | `<Space>ca` |
-| 跳至定義 | `F12` | `gd` |
-| 查看參照 | `Shift+F12` | `gr` |
-| 重新命名 | `F2` | `<Space>cr` |
-| 格式化 | `Shift+Alt+F` | `<Space>cf` |
-| 終端機 | `` Ctrl+` `` | `<Space>ft` |
-| Git GUI | Source Control 面板 | `<Space>gg`（lazygit） |
-| 關閉檔案 | `Ctrl+W` | `<Space>bd` |
-| 分割視窗 | `Ctrl+\` | `<Space>-` / `<Space>\|` |
-| 切換緩衝區 | `Ctrl+Tab` | `<Space>,` |
-| 命令面板 | `Ctrl+Shift+P` | `<Space>:` |
-
-> **提示：** `<Space>` 即 Leader 鍵（空白鍵）。按下後稍等會顯示 which-key 選單，列出所有可用指令。
-
-### nvm 用法
-
-nvm 採用 lazy loading 機制，首次使用 `node`、`npm`、`npx` 或 `nvm` 時才會載入，不影響 shell 啟動速度。
-
-```bash
-# 查看已安裝版本
-nvm ls
-
-# 安裝特定版本
-nvm install 20
-
-# 切換版本
-nvm use 20
-
-# 設定預設版本
-nvm alias default 20
-```
-
-Windows 使用 nvm-windows，指令略有不同：
 ```powershell
-nvm list
-nvm install lts
-nvm use lts
+winget install twpayne.chezmoi
 ```
 
----
+### 2. 套用 public baseline
 
-## 字型設定（解決破圖問題）
-
-在 Windows 環境下使用 Claude Code 等現代 CLI 工具時，常見 CJK 字元導致的渲染錯位（Rendering Artifacts）。安裝支援 Nerd Font 圖示且正確處理中文寬度的字型可有效解決此問題。
-
-### 推薦字型
-
-| 字型 | 特色 | 適合場景 |
-| :--- | :--- | :--- |
-| [Maple Mono NL NF CN](https://github.com/subframe7536/maple-font) | 無連字 + Nerd Font + 中文，終端機最穩 | 跨平台通用首選 |
-| [Sarasa Term TC](https://github.com/be5invis/Sarasa-Gothic) | 嚴格 2:1 對齊，台灣標準字形 | 追求精確對齊 |
-
-### 安裝 Maple Mono（各平台）
-
-- **Windows：** 下載 `MapleMonoNL-NF-CN.zip`，解壓後全選安裝
-- **macOS：** 下載 `MapleMonoNL-NF-CN.zip`，雙擊 `.ttf` 安裝
-- **Linux：**
-  ```bash
-  mkdir -p ~/.local/share/fonts/MapleMono
-  unzip MapleMonoNL-NF-CN.zip -d ~/.local/share/fonts/MapleMono
-  fc-cache -fv
-  ```
-
-### 終端機字型設定
-
-**Windows Terminal（settings.json）：**
-```json
-{
-    "profiles": {
-        "defaults": {
-            "font": {
-                "face": "Maple Mono NL NF CN",
-                "size": 12
-            }
-        }
-    }
-}
-```
-
-**VS Code（settings.json）：**
-```json
-{
-    "editor.fontFamily": "'Maple Mono NL NF CN', 'Menlo', 'Monaco', 'Courier New', monospace",
-    "editor.fontSize": 14,
-    "editor.fontLigatures": false,
-    "terminal.integrated.fontFamily": "'Maple Mono NL NF CN'"
-}
-```
-
-> **字型安裝原則：** 字型安裝在「顯示端」。透過 SSH 連線遠端時，字型安裝在本機；遠端主機只需確保 `$LANG` 為 UTF-8。
-
-詳細說明請參閱 [Claude Code Windows 破圖解決方案](message/Claude%20Code%20Windows%20破圖解決方案%20.md)。
-
----
-
-## Shell 維護與診斷
-
-Linux / macOS 的 shell 狀態現在由 Python CLI 管理：
+把 `<public-repo>` 換成你自己的 repo URL：
 
 ```bash
+chezmoi init --apply <public-repo>
+```
+
+如果已經 init 過，之後更新直接用：
+
+```bash
+chezmoi update
+```
+
+### 3. 重新開啟終端機
+
+**macOS / Linux**
+
+```bash
+exec zsh
+```
+
+**Windows**
+
+重新開啟 PowerShell / Windows Terminal。
+
+## 安裝後會得到什麼
+
+### macOS / Linux
+
+- `~/.zshrc` 極小 bootstrap
+- `~/.config/settingzsh/init.zsh`
+- `~/.config/settingzsh/managed.d/10-base.zsh`
+- `~/.config/settingzsh/managed.d/40-editor.zsh`
+- Zinit + 預設插件集合
+- `fzf`
+- `zoxide`
+- Maple Mono 字型
+
+### Windows
+
+- `~/Documents/PowerShell/Microsoft.PowerShell_profile.ps1`
+- `~/Documents/WindowsPowerShell/Microsoft.PowerShell_profile.ps1`
+- `~/.config/settingzsh/powershell/public-baseline.ps1`
+- PowerShell modules：`Terminal-Icons`、`ZLocation`、`PSFzf`
+- `fzf`
+- `Starship`
+- Maple Mono 字型
+
+### 預設不會做的事
+
+- 不自動安裝 editor 工具
+- 不自動佈署 SSH 私鑰
+- 不接管整份 `~/.zshrc`
+- 不同步 `known_hosts`
+
+## 完整安裝指南
+
+### Machine data 與 feature flags
+
+這個 repo 目前用到的主要 data key 在 `.chezmoi.toml.tmpl`：
+
+```toml
+[data]
+feature_editor = false
+private_ssh_overlay = false
+install_fonts = true
+platform_profile = "auto"
+```
+
+目前真正會影響安裝行為的主要是：
+
+- `feature_editor`
+- `install_fonts`
+
+`private_ssh_overlay` 與 `platform_profile` 目前先保留給後續 private overlay / profile 選擇流程，不代表 public repo 已自動接好 secret repo。
+
+若你要在本機覆蓋預設值，編輯 `~/.config/chezmoi/chezmoi.toml`：
+
+```toml
+[data]
+feature_editor = true
+install_fonts = true
+```
+
+改完後重新套用：
+
+```bash
+chezmoi apply
+```
+
+### 啟用 editor 環境
+
+這會依平台安裝或部署：
+
+- macOS / Linux：Vim、Neovim、`nvm`、Node.js LTS、`ripgrep`、`fd`、`lazygit`
+- Windows：Neovim、`nvm-windows`、Node.js LTS、`ripgrep`、`fd`、`lazygit`
+- repo 內的 `nvim/` 設定
+- `.vimrc` merge
+
+啟用方式有兩種。
+
+**持久化做法**
+
+```toml
+[data]
+feature_editor = true
+```
+
+然後：
+
+```bash
+chezmoi apply
+```
+
+**一次性做法**
+
+```bash
+SETTINGZSH_FEATURE_EDITOR=true chezmoi apply
+```
+
+### Linux 無 sudo 的行為
+
+Linux 目前採用 non-interactive sudo 檢查，不會因為 `chezmoi apply` 卡在 sudo prompt。
+
+若沒有可用的 `sudo -n`：
+
+- base packages 會略過 apt 安裝
+- editor 安裝會改走 binary fallback
+- `ripgrep`、`fd`、`neovim`、`lazygit` 會從 release tarball 安裝到 `~/.local/bin` 或 `~/.local`
+- `gcc` / `vim` 沒有 userspace fallback，會保留 warning
+
+### 字型安裝
+
+預設會安裝 Maple Mono。
+
+- macOS：安裝到 `~/Library/Fonts`
+- Linux：安裝到 `~/.local/share/fonts/MapleMono`
+- Windows：安裝到 `%LOCALAPPDATA%\\Microsoft\\Windows\\Fonts`
+
+安裝後若終端機字型沒切換，請手動把終端機字型改成 `Maple Mono NL NF CN`。
+
+## Shell / Profile 模型
+
+### macOS / Linux
+
+`~/.zshrc` 只保留 bootstrap：
+
+```zsh
+if [ -f "$HOME/.config/settingzsh/init.zsh" ]; then
+  source "$HOME/.config/settingzsh/init.zsh"
+fi
+```
+
+真正的內容放在：
+
+- `~/.config/settingzsh/managed.d/10-base.zsh`
+- `~/.config/settingzsh/managed.d/40-editor.zsh`
+- `~/.config/settingzsh/local.d/*.zsh`
+
+載入順序是：
+
+1. `managed.d/*.zsh`
+2. `local.d/*.zsh`
+
+### Windows
+
+Profile 採雙 target：
+
+- `~/Documents/PowerShell/Microsoft.PowerShell_profile.ps1`
+- `~/Documents/WindowsPowerShell/Microsoft.PowerShell_profile.ps1`
+
+兩者都只負責 source：
+
+```powershell
+$HOME/.config/settingzsh/powershell/public-baseline.ps1
+```
+
+真正的 module import 與 `starship init` 都放在 `public-baseline.ps1`。
+
+## SSH 與 custom private repo
+
+### public baseline 的責任
+
+public baseline 只提供：
+
+- `~/.ssh/config`
+- `~/.ssh/config.d/10-common.conf`
+
+主檔會包含：
+
+```sshconfig
+Include ~/.ssh/config.d/*.conf
+```
+
+### custom private repo 的責任
+
+你的 `custom private repo` 只應該管理：
+
+- 私鑰
+- 公鑰
+- `~/.ssh/config.d/90-private.conf`
+- 其他只屬於 SSH 的私有設定
+
+不應該管理：
+
+- `~/.ssh/config` 主檔
+- `known_hosts`
+- shell / git / nvim / 其他一般 dotfiles
+
+### 範本 repo
+
+repo 內已提供一個參考範本：
+
+- `examples/valor-ssh-key/README.md`
+
+這個範本故意只示範結構，不內建實際私鑰，而且它是 plain repo layout，不是 public repo 這一側的 chezmoi source state。指南裡一律稱它為 `custom private repo`，你可以換成自己的 repo 名稱與交付流程。
+
+### 建議結構
+
+```text
+custom-private-repo/
+├── README.md
+└── .ssh/
+    ├── config.d/
+    │   └── 90-private.conf
+    ├── id_ed25519
+    └── id_ed25519.pub
+```
+
+### 建議流程
+
+1. 先套用 public baseline
+2. 確認 `~/.ssh/config` 與 `~/.ssh/config.d/` 已存在
+3. 依你的安全流程部署 `custom private repo`
+4. 只把 private repo 的 `.ssh/**` 帶進目標機器
+5. 確認 `~/.ssh/config.d/90-private.conf` 與 key file 權限正確
+
+> 目前這個 public repo 沒有自動拉取 secret repo；這是刻意的。SSH secrets 的運送方式交給你的 `custom private repo` 與安全流程決定。
+
+## 日常使用
+
+### 更新
+
+```bash
+chezmoi update
+```
+
+### 檢查差異
+
+```bash
+chezmoi diff
+```
+
+### 重新套用
+
+```bash
+chezmoi apply
+```
+
+### 進到 source state
+
+```bash
+chezmoi cd
+```
+
+## 舊環境遷移與診斷
+
+Linux / macOS 還保留 `settingzsh.cli`，用來處理舊版 bootstrap / marker 狀態。
+
+在 repo source state 內執行：
+
+```bash
+chezmoi cd
 uv run --directory lib python -m settingzsh.cli doctor
 uv run --directory lib python -m settingzsh.cli migrate
 uv run --directory lib python -m settingzsh.cli reconcile
 ```
 
-### 常見用途
+用途：
 
-| 指令 | 用途 |
-| :--- | :--- |
-| `doctor` | 檢查 bootstrap 是否存在、是否仍有舊版 markers、shell 驗證是否失敗 |
-| `migrate` | 將舊版 `settingZsh:managed:*` / `settingZsh:user` 結構搬到 `managed.d/` |
-| `reconcile` | 確保 bootstrap、`init.zsh`、預設 fragments 存在；既有 managed fragments 會保留 |
+- `doctor`：檢查 bootstrap / legacy marker / shell 驗證狀態
+- `migrate`：把舊版 `settingZsh:*` 區塊搬到 `managed.d`
+- `reconcile`：補齊 bootstrap、`init.zsh`、managed fragments
 
-### `config_merge.py` 的現況
+## 專案結構
 
-`lib/config_merge.py` 仍保留在 repo 中，但 Linux / macOS 的主要 `.zshrc` 流程已不再依賴它。目前主要用途是：
+```text
+.
+├── .chezmoi.toml.tmpl
+├── .chezmoidata/
+├── home/
+│   ├── dot_zshrc.tmpl
+│   ├── dot_config/settingzsh/
+│   ├── dot_config/powershell/
+│   ├── Documents/PowerShell/
+│   ├── Documents/WindowsPowerShell/
+│   └── private_dot_ssh/
+├── run_once_before_*.tmpl
+├── run_onchange_after_*.tmpl
+├── lib/settingzsh/
+├── nvim/
+├── vim/
+└── examples/valor-ssh-key/
+```
 
-- `.vimrc` 合併
-- 舊版 merge engine 測試與相容性維護
+## 驗證
 
----
+主要靜態與單元測試：
 
-## 常見問題
-
-1. **如何立即套用新設定？**
-   執行以下指令：
-   ```bash
-   exec zsh
-   ```
-
-2. **如何確認 Zsh 是否為預設 Shell？**
-   執行以下指令確認：
-   ```bash
-   echo $SHELL
-   ```
-   若回傳結果為 `/bin/zsh`，則表示已成功設為預設。
-
-3. **字體安裝後沒有生效？**
-   - 確認已重啟終端機。
-   - 使用終端機的設定選項更改字體為 **Maple Mono NL NF CN**。
-
-4. **如何進一步自訂 Zsh？**
-   - 把自訂內容直接放在 `~/.zshrc` 的 bootstrap block 之外，或放到你自己的 source 檔。
-   - `settingZsh` 只會維護 `settingZsh bootstrap` 區塊與 `~/.config/settingzsh/` 內的 managed 檔案。
-   - 配置 **Powerlevel10k**，執行以下指令：
-     ```bash
-     p10k configure
-     ```
-
-5. **Claude Code 在 Windows 上破圖怎麼辦？**
-   - 安裝 [Maple Mono NL NF CN](https://github.com/subframe7536/maple-font) 字型
-   - 在 Windows Terminal 和 VS Code 中設定該字型
-   - 確保 Claude Code 更新至 v2.1.19 以上版本
-   - 詳細解決方案見 [破圖解決方案文件](message/Claude%20Code%20Windows%20破圖解決方案%20.md)
-
----
-
-## 注意事項
-
-- **Root 使用者：** 若以 root 身份執行腳本，請手動修改 `~/.zshrc` 中的環境變數路徑。
-- **重新登入：** 若切換 Shell 後未生效，請登出並重新登入。
-- **Bootstrap 區塊：** `~/.zshrc` 中 `settingZsh bootstrap` 區塊由本工具維護，其他內容保留給使用者或其他工具。
-- **Managed fragments：** `~/.config/settingzsh/managed.d/` 是本工具的 shell managed 區；若遺失可執行 `reconcile` 補齊。
-- **舊版標記：** 若仍看見 `settingZsh:managed:*` / `settingZsh:user`，先執行 `migrate`。
-
----
-
-## 更新套件
-
-**Linux / macOS：**
 ```bash
-./update.sh
+bash tests/chezmoi/test_task1_scaffold.sh
+bash tests/chezmoi/test_source_state.sh
+bash tests/chezmoi/test_zsh_baseline.sh
+bash tests/chezmoi/test_scripts_presence.sh
+bash tests/chezmoi/test_linux_fallback.sh
+uv run pytest -q tests/test_config_merge.py tests/test_settingzsh_*.py
 ```
 
-**Windows：**
+Windows profile parity 另外有：
+
+```powershell
+pwsh -File tests/chezmoi/test_windows_profile.ps1
 ```
-update.bat
-```
+
+## 已知限制
+
+- Windows runtime 驗證需要 `pwsh`
+- Linux 無 sudo fallback 仍依賴外網下載 release binary
+- `custom private repo` 目前不由 public repo 自動拉取
+- 遷移期內 legacy `setup*.sh` / `update*.sh` 仍存在，但新安裝應以 `chezmoi` 為主
