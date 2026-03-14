@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import re
+import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Callable
 
 from settingzsh.bootstrap import (
     has_bootstrap_block,
@@ -10,10 +12,15 @@ from settingzsh.bootstrap import (
     render_init_zsh,
     render_managed_fragments,
 )
+from settingzsh.reconcile import capture_file_snapshots, restore_file_snapshots, validate_shell
 
 _BEGIN_RE = re.compile(
     r"^\s*#\s*===\s*settingZsh:(managed:[^:]+|user):begin\s*===\s*$"
 )
+_MANAGED_SECTION_FILES = {
+    "zsh-base": "10-base.zsh",
+    "editor": "40-editor.zsh",
+}
 
 
 @dataclass(slots=True)
@@ -63,7 +70,7 @@ def _extract_settingzsh_blocks(
             j += 1
 
         if not found_end:
-            # Keep unmatched begin marker as-is; Task 5 will handle advanced recovery.
+            # Keep unmatched begin marker as-is.
             kept.append(line)
             idx += 1
             continue
@@ -97,7 +104,37 @@ def _insert_bootstrap_at(content_lines: list[str], insert_index: int | None) -> 
     return merged
 
 
-def run_migrate(target_home: Path) -> MigrateResult:
+def _build_write_plan(
+    *,
+    target_home: Path,
+    extracted_managed: dict[str, str],
+    legacy_user: str,
+) -> dict[Path, str]:
+    config_root = target_home / ".config" / "settingzsh"
+    managed_dir = config_root / "managed.d"
+    defaults = render_managed_fragments()
+    write_plan: dict[Path, str] = {}
+
+    for section, filename in _MANAGED_SECTION_FILES.items():
+        fallback = defaults.get(filename, "")
+        content = extracted_managed.get(section, fallback)
+        if content and not content.endswith("\n"):
+            content += "\n"
+        write_plan[managed_dir / filename] = content
+
+    if legacy_user.strip():
+        legacy_content = legacy_user if legacy_user.endswith("\n") else f"{legacy_user}\n"
+        write_plan[managed_dir / "90-legacy-user.zsh"] = legacy_content
+
+    write_plan[config_root / "init.zsh"] = render_init_zsh()
+    return write_plan
+
+
+def run_migrate(
+    target_home: Path,
+    *,
+    validator: Callable[[Path], None] | None = None,
+) -> MigrateResult:
     zshrc_path = target_home / ".zshrc"
     zshrc_content = ""
     if zshrc_path.exists():
@@ -118,37 +155,30 @@ def run_migrate(target_home: Path) -> MigrateResult:
             modified_files=[],
         )
 
-    config_root = target_home / ".config" / "settingzsh"
-    managed_dir = config_root / "managed.d"
-    defaults = render_managed_fragments()
-
-    managed_map = {
-        "zsh-base": "10-base.zsh",
-        "editor": "40-editor.zsh",
-    }
-    modified_files: list[str] = []
-    for section, filename in managed_map.items():
-        fallback = defaults.get(filename, "")
-        content = extracted_managed.get(section, fallback)
-        if content and not content.endswith("\n"):
-            content += "\n"
-        target = managed_dir / filename
-        _write_text(target, content)
-        modified_files.append(str(target))
-
-    if legacy_user.strip():
-        legacy_path = managed_dir / "90-legacy-user.zsh"
-        legacy_content = legacy_user if legacy_user.endswith("\n") else f"{legacy_user}\n"
-        _write_text(legacy_path, legacy_content)
-        modified_files.append(str(legacy_path))
-
-    init_path = config_root / "init.zsh"
-    _write_text(init_path, render_init_zsh())
-    modified_files.append(str(init_path))
-
+    write_plan = _build_write_plan(
+        target_home=target_home,
+        extracted_managed=extracted_managed,
+        legacy_user=legacy_user,
+    )
     migrated_zshrc = _insert_bootstrap_at(kept_lines, first_removed_index)
-    _write_text(zshrc_path, migrated_zshrc)
-    modified_files.append(str(zshrc_path))
+    write_plan[zshrc_path] = migrated_zshrc
+    snapshots = capture_file_snapshots(list(write_plan))
+    runner = validator or validate_shell
+    modified_files: list[str] = []
+
+    try:
+        for target, content in write_plan.items():
+            _write_text(target, content)
+            modified_files.append(str(target))
+
+        runner(target_home)
+    except (subprocess.CalledProcessError, OSError, RuntimeError):
+        restore_file_snapshots(snapshots, root=target_home)
+        return MigrateResult(
+            status="rolled_back",
+            managed_sections=sorted(extracted_managed.keys()),
+            modified_files=[],
+        )
 
     status = "migrated" if removed_any else "no-op"
     return MigrateResult(
