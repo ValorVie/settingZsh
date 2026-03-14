@@ -13,6 +13,7 @@ WARN=0
 pass() { echo "  [PASS] $1"; PASS=$((PASS + 1)); }
 fail() { echo "  [FAIL] $1"; FAIL=$((FAIL + 1)); }
 warn() { echo "  [WARN] $1"; WARN=$((WARN + 1)); }
+PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 
 echo "=== Linux/WSL 環境測試 ==="
 echo "Date: $(date)"
@@ -25,7 +26,7 @@ OS="$(uname -s)"
 if [ "$OS" = "Linux" ]; then
     pass "uname -s = Linux"
 else
-    fail "uname -s = $OS (expected Linux)"
+    warn "uname -s = $OS（非 Linux 主機，僅做靜態腳本檢查）"
 fi
 
 # --- Test 2: .zshrc backup ---
@@ -149,7 +150,7 @@ if [ "$HAS_EDITOR" = true ]; then
         NVIM_VER=$(nvim --version | head -1)
         pass "nvim: $NVIM_VER"
         # 檢查版本 >= 0.10
-        NVIM_MINOR=$(echo "$NVIM_VER" | grep -oP 'v\K[0-9]+\.[0-9]+' | cut -d. -f2)
+        NVIM_MINOR=$(echo "$NVIM_VER" | sed -n 's/.*v[0-9]*\.\([0-9]*\).*/\1/p')
         if [ "${NVIM_MINOR:-0}" -ge 10 ]; then
             pass "nvim 版本 >= 0.10（LazyVim 需求）"
         else
@@ -207,13 +208,11 @@ else
 fi
 
 # =============================================================================
-# 合併機制測試
+# Wrapper/CLI 機制測試
 # =============================================================================
 
-PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-
 echo ""
-echo "=== 合併機制測試 ==="
+echo "=== Wrapper/CLI 機制測試 ==="
 
 # --- Test: uv ---
 echo "--- Test: uv ---"
@@ -223,12 +222,13 @@ else
     warn "uv 未安裝（首次安裝時會自動處理）"
 fi
 
-# --- Test: config_merge.py ---
-echo "--- Test: config_merge.py ---"
-if [ -f "$PROJECT_DIR/lib/config_merge.py" ]; then
-    pass "lib/config_merge.py 存在"
+# --- Test: setup 使用 Python CLI ---
+echo "--- Test: setup 使用 Python CLI ---"
+if grep -q 'python -m settingzsh\.cli' "$PROJECT_DIR/setup_linux.sh" \
+    && grep -q 'run_settingzsh_cli setup' "$PROJECT_DIR/setup_linux.sh"; then
+    pass "setup_linux.sh 以 Python CLI 執行 setup"
 else
-    fail "lib/config_merge.py 不存在"
+    fail "setup_linux.sh 尚未改用 python -m settingzsh.cli setup"
 fi
 
 # --- Test: templates ---
@@ -241,12 +241,21 @@ for tpl in templates/zshrc_base_mac.zsh templates/zshrc_base_linux.zsh templates
     fi
 done
 
-# --- Test: merge_config 函式 ---
-echo "--- Test: merge_config 函式 ---"
-if grep -q 'merge_config()' "$PROJECT_DIR/setup_linux.sh"; then
-    pass "setup_linux.sh 包含 merge_config 函式"
+# --- Test: update 使用 Python CLI ---
+echo "--- Test: update 使用 Python CLI ---"
+if grep -q 'python -m settingzsh\.cli' "$PROJECT_DIR/update_linux.sh" \
+    && grep -q 'run_settingzsh_cli reconcile' "$PROJECT_DIR/update_linux.sh"; then
+    pass "update_linux.sh 以 Python CLI 執行 reconcile"
 else
-    fail "setup_linux.sh 缺少 merge_config 函式"
+    fail "update_linux.sh 尚未改用 python -m settingzsh.cli reconcile"
+fi
+
+# --- Test: setup 不可保留 .zshrc destructive fallback ---
+echo "--- Test: setup 不可保留 .zshrc destructive fallback ---"
+if grep -q 'cp "\$template" "\$target"' "$PROJECT_DIR/setup_linux.sh"; then
+    fail "setup_linux.sh 仍包含 destructive fallback"
+else
+    pass "setup_linux.sh 不含 destructive fallback"
 fi
 
 # --- Test: pyproject.toml ---

@@ -232,11 +232,11 @@ else
 fi
 
 # =============================================================================
-# 合併機制測試
+# Wrapper/CLI 機制測試
 # =============================================================================
 
 echo ""
-echo "=== 合併機制測試 ==="
+echo "=== Wrapper/CLI 機制測試 ==="
 
 # --- Test: uv ---
 echo "--- Test: uv ---"
@@ -246,32 +246,30 @@ else
     warn "uv 未安裝（首次安裝時會自動處理）"
 fi
 
-# --- Test: config_merge.py ---
-echo "--- Test: config_merge.py ---"
-if [ -f "$SCRIPT_DIR/lib/config_merge.py" ]; then
-    pass "lib/config_merge.py 存在"
+# --- Test: setup 使用 Python CLI ---
+echo "--- Test: setup 使用 Python CLI ---"
+if grep -q 'python -m settingzsh\.cli' "$SCRIPT_DIR/setup_mac.sh" \
+    && grep -q 'run_settingzsh_cli setup' "$SCRIPT_DIR/setup_mac.sh"; then
+    pass "setup_mac.sh 以 Python CLI 執行 setup"
 else
-    fail "lib/config_merge.py 不存在"
+    fail "setup_mac.sh 尚未改用 python -m settingzsh.cli setup"
 fi
 
-# --- Test: templates ---
-echo "--- Test: templates ---"
-TEMPLATES_OK=true
-for tpl in templates/zshrc_base_mac.zsh templates/zshrc_base_linux.zsh templates/zshrc_editor.zsh; do
-    if [ -f "$SCRIPT_DIR/$tpl" ]; then
-        pass "$tpl 存在"
-    else
-        fail "$tpl 不存在"
-        TEMPLATES_OK=false
-    fi
-done
-
-# --- Test: merge_config 函式 ---
-echo "--- Test: merge_config 函式 ---"
-if grep -q 'merge_config()' "$SCRIPT_DIR/setup_mac.sh"; then
-    pass "setup_mac.sh 包含 merge_config 函式"
+# --- Test: update 使用 Python CLI ---
+echo "--- Test: update 使用 Python CLI ---"
+if grep -q 'python -m settingzsh\.cli' "$SCRIPT_DIR/update_mac.sh" \
+    && grep -q 'run_settingzsh_cli reconcile' "$SCRIPT_DIR/update_mac.sh"; then
+    pass "update_mac.sh 以 Python CLI 執行 reconcile"
 else
-    fail "setup_mac.sh 缺少 merge_config 函式"
+    fail "update_mac.sh 尚未改用 python -m settingzsh.cli reconcile"
+fi
+
+# --- Test: setup 不可保留 .zshrc destructive fallback ---
+echo "--- Test: setup 不可保留 .zshrc destructive fallback ---"
+if grep -q 'cp "\$template" "\$target"' "$SCRIPT_DIR/setup_mac.sh"; then
+    fail "setup_mac.sh 仍包含 destructive fallback"
+else
+    pass "setup_mac.sh 不含 destructive fallback"
 fi
 
 # --- Test: pyproject.toml ---

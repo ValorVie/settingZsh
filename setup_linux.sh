@@ -57,17 +57,20 @@ install_uv() {
     fi
 }
 
-merge_config() {
-    local target="$1" template="$2" section="$3" filetype="$4"
-    if command -v uv >/dev/null 2>&1; then
-        uv run "$SCRIPT_DIR/lib/config_merge.py" \
-            --target "$target" --template "$template" \
-            --section "$section" --type "$filetype"
-    else
-        echo "[警告] uv 不可用，使用備份+覆寫模式"
-        [ -f "$target" ] && cp "$target" "${target}.bak"
-        cp "$template" "$target"
-    fi
+run_settingzsh_cli() {
+    local command="$1"
+    (
+        cd "$SCRIPT_DIR/lib"
+        uv run python -m settingzsh.cli "$command"
+    )
+}
+
+merge_vimrc() {
+    uv run "$SCRIPT_DIR/lib/config_merge.py" \
+        --target "$HOME/.vimrc" \
+        --template "$SCRIPT_DIR/vim/.vimrc" \
+        --section "vimrc" \
+        --type "vim"
 }
 
 # =============================================================================
@@ -107,9 +110,9 @@ install_zsh_env() {
     echo "=== 安裝 zoxide... ==="
     curl -sS https://raw.githubusercontent.com/ajeetdsouza/zoxide/main/install.sh | bash
 
-    # 6. 合併 .zshrc（zsh 基本段）
-    echo "=== 合併 zshrc 設定... ==="
-    merge_config ~/.zshrc "$SCRIPT_DIR/templates/zshrc_base_linux.zsh" "zsh-base" "zsh"
+    # 6. 套用 settingZsh shell bootstrap
+    echo "=== 套用 settingZsh shell bootstrap... ==="
+    run_settingzsh_cli setup
 }
 
 # =============================================================================
@@ -210,7 +213,7 @@ install_editor_env() {
 
     # 6. 合併 .vimrc
     echo "=== 合併 Vim 配置... ==="
-    merge_config ~/.vimrc "$SCRIPT_DIR/vim/.vimrc" "vimrc" "vim"
+    merge_vimrc
 
     # 7. 部署 Neovim 配置
     echo "=== 部署 Neovim 配置... ==="
@@ -221,9 +224,9 @@ install_editor_env() {
     mkdir -p ~/.config
     cp -r "$SCRIPT_DIR/nvim" ~/.config/nvim
 
-    # 8. 合併 .zshrc editor 段
-    echo "=== 合併 editor 設定至 .zshrc... ==="
-    merge_config ~/.zshrc "$SCRIPT_DIR/templates/zshrc_editor.zsh" "editor" "zsh"
+    # 8. 同步 settingZsh shell 狀態
+    echo "=== 同步 settingZsh shell 狀態... ==="
+    run_settingzsh_cli reconcile
 }
 
 # =============================================================================

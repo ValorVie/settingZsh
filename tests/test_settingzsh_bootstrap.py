@@ -37,5 +37,8 @@ def test_render_managed_fragments_shape() -> None:
     assert all(v.endswith("\n") for v in fragments.values())
 
 
-def test_setup_command_executes_preview_path() -> None:
-    assert main(["setup"]) == 0
+def test_setup_command_executes_preview_path(tmp_path: Path, monkeypatch) -> None:
+    home = tmp_path / "home"
+    home.mkdir(parents=True, exist_ok=True)
+    monkeypatch.setattr("settingzsh.cli.validate_shell", lambda _: None)
+    assert main(["setup", "--home", str(home)]) == 0

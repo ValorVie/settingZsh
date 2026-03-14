@@ -3,7 +3,25 @@
 # 根據 ~/.settingzsh/features 決定更新範圍
 set -e
 
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 FEATURES_FILE="$HOME/.settingzsh/features"
+
+install_uv() {
+    if command -v uv >/dev/null 2>&1; then
+        return 0
+    fi
+    echo "=== 安裝 uv... ==="
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+    export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$PATH"
+}
+
+run_settingzsh_cli() {
+    local command="$1"
+    (
+        cd "$SCRIPT_DIR/lib"
+        uv run python -m settingzsh.cli "$command"
+    )
+}
 
 # 讀取已安裝模組
 has_feature() {
@@ -25,6 +43,7 @@ has_feature() {
 echo "=== 更新 Homebrew 套件 ==="
 brew update
 brew upgrade
+install_uv
 
 if [ -d "$HOME/.fzf" ]; then
     echo "=== 更新 fzf ==="
@@ -93,6 +112,10 @@ else
     echo ""
     echo "Editor 環境未安裝，略過更新"
 fi
+
+echo ""
+echo "=== 同步 settingZsh shell 狀態 ==="
+run_settingzsh_cli reconcile
 
 echo ""
 echo "=== 更新完成 ==="
