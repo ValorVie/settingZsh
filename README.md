@@ -94,6 +94,16 @@ Task 3 目前已建立 zsh baseline fragments（chezmoi 模型）：
 - `templates/zshrc_base_mac.zsh`（調整為 managed fragment compatibility source）
 - `templates/zshrc_base_linux.zsh`（調整為 managed fragment compatibility source）
 
+Task 4 目前已建立 platform install run scripts（chezmoi 模型）：
+
+- `run_once_before_10-install-base-packages.sh.tmpl`
+- `run_once_before_20-install-fonts.sh.tmpl`
+- `run_onchange_after_30-install-editor.sh.tmpl`
+- `run_once_before_10-install-base-packages.ps1.tmpl`
+- `run_once_before_20-install-fonts.ps1.tmpl`
+- `run_onchange_after_30-install-editor.ps1.tmpl`
+- `tests/chezmoi/test_scripts_presence.sh`
+
 
 ---
 

@@ -1,0 +1,43 @@
+Set-StrictMode -Version Latest
+$ErrorActionPreference = "Stop"
+
+$isWindowsHost = if ($PSVersionTable.PSVersion.Major -ge 6) {
+    $IsWindows
+} else {
+    $env:OS -eq "Windows_NT"
+}
+
+if (-not $isWindowsHost) {
+    Write-Host "[settingzsh] non-Windows host, skip windows fonts install script"
+    exit 0
+}
+
+$mapleVersion = "v7.9"
+$mapleArchive = "MapleMonoNL-NF-CN.zip"
+$mapleUrl = "https://github.com/subframe7536/maple-font/releases/download/$mapleVersion/$mapleArchive"
+$tmpRoot = Join-Path $env:TEMP "settingzsh-maple-font"
+$zipPath = Join-Path $tmpRoot $mapleArchive
+$extractPath = Join-Path $tmpRoot "extract"
+$userFontDir = Join-Path $env:LOCALAPPDATA "Microsoft\Windows\Fonts"
+$regPath = "HKCU:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts"
+
+New-Item -ItemType Directory -Path $tmpRoot -Force | Out-Null
+New-Item -ItemType Directory -Path $userFontDir -Force | Out-Null
+
+Invoke-WebRequest -Uri $mapleUrl -OutFile $zipPath -UseBasicParsing
+if (Test-Path $extractPath) {
+    Remove-Item -Path $extractPath -Recurse -Force
+}
+Expand-Archive -Path $zipPath -DestinationPath $extractPath -Force
+
+$fontFiles = Get-ChildItem -Path $extractPath -Filter "*.ttf" -Recurse
+if ($fontFiles.Count -eq 0) {
+    $fontFiles = Get-ChildItem -Path $extractPath -Filter "*.otf" -Recurse
+}
+
+foreach ($fontFile in $fontFiles) {
+    $destPath = Join-Path $userFontDir $fontFile.Name
+    Copy-Item -Path $fontFile.FullName -Destination $destPath -Force
+    $regName = "$($fontFile.BaseName) (TrueType)"
+    Set-ItemProperty -Path $regPath -Name $regName -Value $destPath
+}

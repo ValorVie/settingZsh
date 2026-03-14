@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+OS="{{ .chezmoi.os }}"
+MAPLE_VERSION="v7.9"
+MAPLE_ARCHIVE="MapleMonoNL-NF-CN.zip"
+MAPLE_URL="https://github.com/subframe7536/maple-font/releases/download/${MAPLE_VERSION}/${MAPLE_ARCHIVE}"
+
+tmp_dir="$(mktemp -d)"
+cleanup() {
+  rm -rf "$tmp_dir"
+}
+trap cleanup EXIT
+
+curl -fL "$MAPLE_URL" -o "$tmp_dir/$MAPLE_ARCHIVE"
+unzip -q -o "$tmp_dir/$MAPLE_ARCHIVE" -d "$tmp_dir/MapleMono"
+
+case "$OS" in
+  darwin)
+    mkdir -p "$HOME/Library/Fonts"
+    cp "$tmp_dir"/MapleMono/*.ttf "$HOME/Library/Fonts/" 2>/dev/null || true
+    cp "$tmp_dir"/MapleMono/*.otf "$HOME/Library/Fonts/" 2>/dev/null || true
+    ;;
+  linux)
+    mkdir -p "$HOME/.local/share/fonts/MapleMono"
+    cp "$tmp_dir"/MapleMono/*.ttf "$HOME/.local/share/fonts/MapleMono/" 2>/dev/null || true
+    cp "$tmp_dir"/MapleMono/*.otf "$HOME/.local/share/fonts/MapleMono/" 2>/dev/null || true
+    if command -v fc-cache >/dev/null 2>&1; then
+      fc-cache -fv >/dev/null 2>&1 || true
+    fi
+    ;;
+  *)
+    echo "[settingzsh] unsupported os for unix fonts script: $OS"
+    ;;
+esac

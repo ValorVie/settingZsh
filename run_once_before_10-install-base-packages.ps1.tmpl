@@ -1,0 +1,35 @@
+Set-StrictMode -Version Latest
+$ErrorActionPreference = "Stop"
+
+$isWindowsHost = if ($PSVersionTable.PSVersion.Major -ge 6) {
+    $IsWindows
+} else {
+    $env:OS -eq "Windows_NT"
+}
+
+if (-not $isWindowsHost) {
+    Write-Host "[settingzsh] non-Windows host, skip windows base install script"
+    exit 0
+}
+
+$profileV7Dir = Join-Path $env:USERPROFILE "Documents\PowerShell"
+$profileV5Dir = Join-Path $env:USERPROFILE "Documents\WindowsPowerShell"
+$settingDir = Join-Path $env:USERPROFILE ".config\settingzsh\powershell"
+
+New-Item -ItemType Directory -Path $profileV7Dir -Force | Out-Null
+New-Item -ItemType Directory -Path $profileV5Dir -Force | Out-Null
+New-Item -ItemType Directory -Path $settingDir -Force | Out-Null
+
+$modules = @("Terminal-Icons", "ZLocation", "PSFzf")
+foreach ($moduleName in $modules) {
+    if (-not (Get-Module -ListAvailable $moduleName -ErrorAction SilentlyContinue)) {
+        Install-Module -Name $moduleName -Scope CurrentUser -Force -AllowClobber
+    }
+}
+
+if (Get-Command winget -ErrorAction SilentlyContinue) {
+    winget install --id junegunn.fzf --accept-source-agreements --accept-package-agreements --silent | Out-Null
+    winget install --id Starship.Starship --accept-source-agreements --accept-package-agreements --silent | Out-Null
+} else {
+    Write-Host "[settingzsh] winget unavailable, skip fzf/starship install"
+}

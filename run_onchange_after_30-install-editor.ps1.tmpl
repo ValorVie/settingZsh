@@ -1,0 +1,59 @@
+Set-StrictMode -Version Latest
+$ErrorActionPreference = "Stop"
+
+$isWindowsHost = if ($PSVersionTable.PSVersion.Major -ge 6) {
+    $IsWindows
+} else {
+    $env:OS -eq "Windows_NT"
+}
+
+if (-not $isWindowsHost) {
+    Write-Host "[settingzsh] non-Windows host, skip windows editor install script"
+    exit 0
+}
+
+$featureEditorDefault = "{{ if .feature_editor }}true{{ else }}false{{ end }}"
+$featureEditor = if ($env:SETTINGZSH_FEATURE_EDITOR) { $env:SETTINGZSH_FEATURE_EDITOR } else { $featureEditorDefault }
+if ($featureEditor -notmatch '^(1|true|TRUE|yes|YES|on|ON)$') {
+    Write-Host "[settingzsh] editor feature disabled, skip windows editor install script"
+    exit 0
+}
+
+if (Get-Command winget -ErrorAction SilentlyContinue) {
+    $packages = @(
+        "Neovim.Neovim",
+        "CoreyButler.NVMforWindows",
+        "BurntSushi.ripgrep.MSVC",
+        "sharkdp.fd",
+        "JesseDuffield.lazygit"
+    )
+    foreach ($packageId in $packages) {
+        winget install --id $packageId --accept-source-agreements --accept-package-agreements --silent | Out-Null
+    }
+} else {
+    Write-Host "[settingzsh] winget unavailable, skip windows editor package install"
+}
+
+if (Get-Command nvm -ErrorAction SilentlyContinue) {
+    nvm install lts | Out-Null
+    nvm use lts | Out-Null
+} else {
+    Write-Host "[settingzsh] nvm not found, skip node lts install"
+}
+
+$sourceDir = if ($env:CHEZMOI_SOURCE_DIR) { $env:CHEZMOI_SOURCE_DIR } else { "{{ .chezmoi.sourceDir }}" }
+$sourceNvim = Join-Path $sourceDir "nvim"
+$targetNvim = Join-Path $env:LOCALAPPDATA "nvim"
+
+if (Test-Path $sourceNvim) {
+    if (Test-Path $targetNvim) {
+        $backupPath = "$targetNvim.bak"
+        if (Test-Path $backupPath) {
+            Remove-Item -Path $backupPath -Recurse -Force
+        }
+        Move-Item -Path $targetNvim -Destination $backupPath
+    }
+    Copy-Item -Path $sourceNvim -Destination $targetNvim -Recurse -Force
+} else {
+    Write-Host "[settingzsh] nvim source not found: $sourceNvim"
+}

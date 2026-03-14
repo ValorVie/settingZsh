@@ -1,0 +1,70 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+OS="{{ .chezmoi.os }}"
+
+ensure_common_dirs() {
+  mkdir -p "$HOME/.local/bin"
+  mkdir -p "$HOME/.cache/zinit/completions"
+  mkdir -p "$HOME/.config/settingzsh/managed.d"
+  mkdir -p "$HOME/.config/settingzsh/local.d"
+}
+
+install_uv() {
+  if command -v uv >/dev/null 2>&1; then
+    return
+  fi
+  if command -v curl >/dev/null 2>&1; then
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+    export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$PATH"
+  else
+    echo "[settingzsh] curl unavailable, skip uv install"
+  fi
+}
+
+install_darwin_base() {
+  if ! command -v brew >/dev/null 2>&1; then
+    echo "[settingzsh] Homebrew not found, skip darwin base package install"
+    return
+  fi
+  brew install zsh git unzip xz fzf zoxide
+  install_uv
+}
+
+install_linux_base() {
+  if command -v apt >/dev/null 2>&1; then
+    if command -v sudo >/dev/null 2>&1; then
+      sudo apt update -y
+      sudo apt install -y zsh git unzip xz-utils fontconfig curl ca-certificates fzf
+    else
+      echo "[settingzsh] sudo not available, skip apt base package install (will be handled in task5 fallback)"
+    fi
+  fi
+
+  if ! command -v fzf >/dev/null 2>&1; then
+    if [ -d "$HOME/.fzf" ]; then
+      git -C "$HOME/.fzf" pull || true
+    elif command -v git >/dev/null 2>&1; then
+      git clone --depth 1 https://github.com/junegunn/fzf.git "$HOME/.fzf" || true
+    fi
+    if [ -x "$HOME/.fzf/install" ]; then
+      "$HOME/.fzf/install" --all --key-bindings --completion --no-bash --no-fish || true
+    fi
+  fi
+
+  if ! command -v zoxide >/dev/null 2>&1; then
+    if command -v curl >/dev/null 2>&1; then
+      curl -fsSL https://raw.githubusercontent.com/ajeetdsouza/zoxide/main/install.sh | bash || true
+    fi
+  fi
+
+  install_uv
+}
+
+ensure_common_dirs
+
+case "$OS" in
+  darwin) install_darwin_base ;;
+  linux) install_linux_base ;;
+  *) echo "[settingzsh] unsupported os for unix base script: $OS" ;;
+esac

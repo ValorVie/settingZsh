@@ -1,0 +1,94 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+OS="{{ .chezmoi.os }}"
+FEATURE_EDITOR_DEFAULT="{{ if .feature_editor }}true{{ else }}false{{ end }}"
+FEATURE_EDITOR="${SETTINGZSH_FEATURE_EDITOR:-$FEATURE_EDITOR_DEFAULT}"
+NVM_VERSION="v0.40.1"
+
+if [[ ! "$FEATURE_EDITOR" =~ ^(1|true|TRUE|yes|YES|on|ON)$ ]]; then
+  echo "[settingzsh] editor feature disabled, skip editor install script"
+  exit 0
+fi
+
+SOURCE_DIR="${CHEZMOI_SOURCE_DIR:-{{ .chezmoi.sourceDir }}}"
+
+install_nvm_and_node_lts() {
+  if [ ! -s "$HOME/.nvm/nvm.sh" ]; then
+    curl -fsSL "https://raw.githubusercontent.com/nvm-sh/nvm/${NVM_VERSION}/install.sh" | bash
+  fi
+  export NVM_DIR="$HOME/.nvm"
+  if [ -s "$NVM_DIR/nvm.sh" ]; then
+    # shellcheck disable=SC1090
+    source "$NVM_DIR/nvm.sh"
+  fi
+  if command -v nvm >/dev/null 2>&1; then
+    nvm install --lts
+    nvm alias default 'lts/*'
+  fi
+}
+
+deploy_nvim_config() {
+  local source_nvim="$SOURCE_DIR/nvim"
+  local target_nvim="$HOME/.config/nvim"
+
+  if [ ! -d "$source_nvim" ]; then
+    echo "[settingzsh] nvim source not found: $source_nvim"
+    return
+  fi
+
+  if [ -d "$target_nvim" ]; then
+    mv "$target_nvim" "${target_nvim}.bak"
+  fi
+  mkdir -p "$HOME/.config"
+  cp -R "$source_nvim" "$target_nvim"
+}
+
+merge_vimrc() {
+  local merge_script="$SOURCE_DIR/lib/config_merge.py"
+  local template_vimrc="$SOURCE_DIR/vim/.vimrc"
+
+  if [ ! -f "$merge_script" ] || [ ! -f "$template_vimrc" ]; then
+    echo "[settingzsh] vim merge assets not found, skip .vimrc merge"
+    return
+  fi
+  if ! command -v uv >/dev/null 2>&1; then
+    echo "[settingzsh] uv not found, skip .vimrc merge"
+    return
+  fi
+
+  uv run "$merge_script" \
+    --target "$HOME/.vimrc" \
+    --template "$template_vimrc" \
+    --section "vimrc" \
+    --type "vim"
+}
+
+install_darwin_editor() {
+  if ! command -v brew >/dev/null 2>&1; then
+    echo "[settingzsh] Homebrew not found, skip darwin editor install"
+    return
+  fi
+  brew install vim neovim ripgrep fd lazygit
+}
+
+install_linux_editor() {
+  if command -v apt >/dev/null 2>&1 && command -v sudo >/dev/null 2>&1; then
+    sudo apt update -y
+    sudo apt install -y build-essential vim ripgrep fd-find neovim
+  else
+    echo "[settingzsh] apt/sudo missing, editor package fallback will be expanded in task5"
+  fi
+}
+
+case "$OS" in
+  darwin) install_darwin_editor ;;
+  linux) install_linux_editor ;;
+  *)
+    echo "[settingzsh] unsupported os for unix editor script: $OS"
+    ;;
+esac
+
+install_nvm_and_node_lts
+merge_vimrc
+deploy_nvim_config
