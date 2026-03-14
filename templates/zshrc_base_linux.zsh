@@ -1,71 +1,47 @@
-# -----------------------------
-# Zsh 配置開始
-# -----------------------------
+# managed fragment template: settingZsh base (Linux compatibility source)
 
-if [ "$(whoami)" = "root" ]; then
-    export PATH="$PATH:/root/.local/bin"
+typeset -U path fpath
+if [[ "$(id -u)" -eq 0 ]]; then
+  path+=("/root/.local/bin")
 else
-    export PATH="$PATH:/home/$(whoami)/.local/bin"
+  path+=("/home/$(whoami)/.local/bin")
 fi
+export PATH
 
-# Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.zshrc.
-# Initialization code that may require console input (password prompts, [y/n]
-# confirmations, etc.) must go above this block; everything else may go below.
 if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
   source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
 fi
 
-if [[ -f "/opt/homebrew/bin/brew" ]]; then
-  # If you're using macO you'll want this enabled
-  eval "$(/opt/homebrew/bin/brew shellenv)"
-fi
-
-# Set the directory we want to store zinit and plugins
 ZINIT_HOME="${XDG_DATA_HOME:-${HOME}/.local/share}/zinit/zinit.git"
+if [[ -f "${ZINIT_HOME}/zinit.zsh" ]]; then
+  source "${ZINIT_HOME}/zinit.zsh"
 
-# Download Zinit, if it's not there yet
-if [ ! -d "$ZINIT_HOME" ]; then
-   mkdir -p "$(dirname $ZINIT_HOME)"
-   git clone https://github.com/zdharma-continuum/zinit.git "$ZINIT_HOME"
+  zinit ice depth=1
+  zinit light romkatv/powerlevel10k
+  zinit light zsh-users/zsh-completions
+
+  zinit snippet OMZP::git
+  zinit snippet OMZP::sudo
+  zinit snippet OMZP::ansible
+  zinit snippet OMZP::kubectl
+  zinit snippet OMZP::kubectx
+  zinit snippet OMZP::command-not-found
+  zinit snippet OMZP::docker-compose
+  zinit snippet OMZP::docker
+  zinit snippet OMZ::lib/key-bindings.zsh
+
+  autoload -Uz compinit && compinit
+  zinit cdreplay -q
+
+  zinit light Aloxaf/fzf-tab
+  zinit light zsh-users/zsh-syntax-highlighting
+  zinit light zsh-users/zsh-autosuggestions
+  zinit light zsh-users/zsh-history-substring-search
+  zinit light djui/alias-tips
 fi
 
-# Source/Load zinit
-source "${ZINIT_HOME}/zinit.zsh"
+[[ -f ~/.p10k.zsh ]] && source ~/.p10k.zsh
 
-# Add in Powerlevel10k
-zinit ice depth=1; zinit light romkatv/powerlevel10k
-
-# Add in zsh plugins stage 1
-zinit light zsh-users/zsh-completions
-
-# Add in snippets
-zinit snippet OMZP::git
-zinit snippet OMZP::sudo
-zinit snippet OMZP::ansible
-zinit snippet OMZP::kubectl
-zinit snippet OMZP::kubectx
-zinit snippet OMZP::command-not-found
-zinit snippet OMZP::docker-compose
-zinit snippet OMZP::docker
-zinit snippet OMZ::lib/key-bindings.zsh
-
-# Load completions
-autoload -Uz compinit && compinit
-
-zinit cdreplay -q
-
-# Add in zsh plugins stage 2
-zinit light Aloxaf/fzf-tab
-zinit light zsh-users/zsh-syntax-highlighting
-zinit light zsh-users/zsh-autosuggestions
-zinit light zsh-users/zsh-history-substring-search
-zinit light djui/alias-tips
-
-# To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
-[[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
-
-# Keybindings use `cat -v` check
-# bindkey -e
 bindkey '^f' autosuggest-accept
 bindkey '^p' history-search-backward
 bindkey '^n' history-search-forward
@@ -73,7 +49,6 @@ bindkey '^[w' kill-region
 bindkey '^[[A' history-substring-search-up
 bindkey '^[[B' history-substring-search-down
 
-# History
 HISTSIZE=5000
 HISTFILE=~/.zsh_history
 SAVEHIST=$HISTSIZE
@@ -86,29 +61,23 @@ setopt hist_save_no_dups
 setopt hist_ignore_dups
 setopt hist_find_no_dups
 
-# Completion styling
 zstyle ':completion:*' matcher-list 'm:{a-z}={A-Za-z}'
 zstyle ':completion:*' list-colors "${(s.:.)LS_COLORS}"
 zstyle ':completion:*' menu no
 zstyle ':fzf-tab:complete:cd:*' fzf-preview 'ls --color $realpath'
 zstyle ':fzf-tab:complete:__zoxide_z:*' fzf-preview 'ls --color $realpath'
 
-# Aliases
 alias ls='ls --color'
-# alias c='clear'
-
-# Shell integrations
-eval "$(zoxide init --cmd cd zsh)"
+if command -v zoxide >/dev/null 2>&1; then
+  eval "$(zoxide init --cmd cd zsh)"
+fi
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 
-# Shell working directory reporting
-# iTerm2 CurrentDir (for iTerm2 / Tabby)
-# WezTerm OSC 7 (for WezTerm session restore)
-precmd () {
+_settingzsh_emit_currentdir() {
   echo -n "\x1b]1337;CurrentDir=$(pwd)\x07"
   printf '\e]7;file://%s%s\e\\' "$HOST" "$PWD"
 }
 
-# -----------------------------
-# Zsh 配置結束
-# -----------------------------
+if (( ${precmd_functions[(I)_settingzsh_emit_currentdir]} == 0 )); then
+  precmd_functions+=(_settingzsh_emit_currentdir)
+fi

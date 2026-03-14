@@ -1,7 +1,15 @@
-# managed fragment template: settingZsh base (macOS compatibility source)
+# managed by chezmoi: settingZsh base fragment
 
 typeset -U path fpath
-path+=("$HOME/.local/bin")
+if [[ "${OSTYPE:-}" == linux* ]]; then
+  if [[ "$(id -u)" -eq 0 ]]; then
+    path+=("/root/.local/bin")
+  else
+    path+=("/home/$(whoami)/.local/bin")
+  fi
+else
+  path+=("$HOME/.local/bin")
+fi
 export PATH
 
 if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
@@ -64,6 +72,7 @@ zstyle ':fzf-tab:complete:cd:*' fzf-preview 'ls --color $realpath'
 zstyle ':fzf-tab:complete:__zoxide_z:*' fzf-preview 'ls --color $realpath'
 
 alias ls='ls --color'
+
 if command -v zoxide >/dev/null 2>&1; then
   eval "$(zoxide init --cmd cd zsh)"
 fi

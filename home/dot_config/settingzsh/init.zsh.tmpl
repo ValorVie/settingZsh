@@ -1,0 +1,10 @@
+[[ -n "${SETTINGZSH_LOADED:-}" ]] && return 0
+export SETTINGZSH_LOADED=1
+
+for file in "$HOME"/.config/settingzsh/managed.d/*.zsh(N); do
+  [[ -f "$file" ]] && source "$file"
+done
+
+for file in "$HOME"/.config/settingzsh/local.d/*.zsh(N); do
+  [[ -f "$file" ]] && source "$file"
+done

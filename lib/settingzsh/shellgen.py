@@ -37,6 +37,9 @@ def render_init_zsh() -> str:
         'for file in "$HOME"/.config/settingzsh/managed.d/*.zsh(N); do',
         '  [ -f "$file" ] && source "$file"',
         "done",
+        'for file in "$HOME"/.config/settingzsh/local.d/*.zsh(N); do',
+        '  [ -f "$file" ] && source "$file"',
+        "done",
     )
     return "\n".join(lines) + "\n"
 

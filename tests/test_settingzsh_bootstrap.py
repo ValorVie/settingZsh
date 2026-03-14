@@ -26,6 +26,7 @@ def test_render_bootstrap_block() -> None:
 def test_render_init_zsh_loads_managed_fragments_once() -> None:
     content = render_init_zsh()
     assert "managed.d" in content
+    assert "local.d" in content
     assert "SETTINGZSH_LOADED" in content
     assert "*.zsh(N)" in content
 
@@ -41,6 +42,7 @@ def test_render_managed_fragments_use_real_shell_content() -> None:
     fragments = render_managed_fragments()
     assert "ZINIT_HOME=" in fragments["10-base.zsh"]
     assert "lazy_nvm()" in fragments["40-editor.zsh"]
+    assert "SETTINGZSH_DISABLE_EDITOR_SHELL" in fragments["40-editor.zsh"]
 
 
 def test_setup_command_executes_preview_path(tmp_path: Path, monkeypatch) -> None:

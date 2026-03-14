@@ -85,6 +85,15 @@ Task 2 目前已建立 public baseline source state：
 - `home/Documents/WindowsPowerShell/Microsoft.PowerShell_profile.ps1.tmpl`
 - `tests/chezmoi/test_source_state.sh`
 
+Task 3 目前已建立 zsh baseline fragments（chezmoi 模型）：
+
+- `home/dot_config/settingzsh/init.zsh.tmpl`
+- `home/dot_config/settingzsh/managed.d/10-base.zsh.tmpl`
+- `home/dot_config/settingzsh/managed.d/40-editor.zsh.tmpl`
+- `tests/chezmoi/test_zsh_baseline.sh`
+- `templates/zshrc_base_mac.zsh`（調整為 managed fragment compatibility source）
+- `templates/zshrc_base_linux.zsh`（調整為 managed fragment compatibility source）
+
 
 ---
 
