@@ -75,6 +75,16 @@
 
 後續遷移會以 parity matrix 為準，確保既有 macOS / Linux / Windows 可見結果不退化。
 
+Task 2 目前已建立 public baseline source state：
+
+- `home/dot_zshrc.tmpl`
+- `home/private_dot_ssh/config.tmpl`
+- `home/private_dot_ssh/config.d/10-common.conf.tmpl`
+- `home/dot_config/settingzsh/powershell/public-baseline.ps1.tmpl`
+- `home/Documents/PowerShell/Microsoft.PowerShell_profile.ps1.tmpl`
+- `home/Documents/WindowsPowerShell/Microsoft.PowerShell_profile.ps1.tmpl`
+- `tests/chezmoi/test_source_state.sh`
+
 
 ---
 

@@ -1,0 +1,5 @@
+# managed by chezmoi: PowerShell 7+ profile target
+$baselinePath = Join-Path $HOME ".config/settingzsh/powershell/public-baseline.ps1"
+if (Test-Path $baselinePath) {
+    . $baselinePath
+}

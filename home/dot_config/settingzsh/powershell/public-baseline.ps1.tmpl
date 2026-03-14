@@ -1,0 +1,18 @@
+# managed by chezmoi: settingZsh PowerShell public baseline snippet
+
+$ProfileScope = if ($PSVersionTable.PSVersion.Major -ge 7) {
+    "PowerShell7+"
+} else {
+    "WindowsPowerShell5.1"
+}
+
+$optionalModules = @("Terminal-Icons", "ZLocation", "PSFzf")
+foreach ($moduleName in $optionalModules) {
+    if (Get-Module -ListAvailable $moduleName -ErrorAction SilentlyContinue) {
+        Import-Module $moduleName -ErrorAction SilentlyContinue
+    }
+}
+
+if (Get-Command starship -ErrorAction SilentlyContinue) {
+    Invoke-Expression (& starship init powershell)
+}
