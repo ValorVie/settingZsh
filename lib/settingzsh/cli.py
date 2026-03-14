@@ -11,8 +11,20 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _run_setup_preview() -> None:
+    from settingzsh.bootstrap import (
+        render_bootstrap_block,
+        render_init_zsh,
+        render_managed_fragments,
+    )
+
+    # Task 2 only wires modules together; file I/O will be implemented later.
+    _ = (render_bootstrap_block(), render_init_zsh(), render_managed_fragments())
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
-    parser.parse_args(argv)
+    args = parser.parse_args(argv)
+    if args.command == "setup":
+        _run_setup_preview()
     return 0
-
