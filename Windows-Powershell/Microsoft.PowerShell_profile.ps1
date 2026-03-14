@@ -54,24 +54,17 @@ if (Test-Path "$env:USERPROFILE\Documents\PowerShell\OpenSpecCompletion.ps1") {
 # =============================================================================
 # 互動功能增強 (PSReadLine - 類似 Zsh 的記憶功能)
 # =============================================================================
-# PS 5.1 不支援 Prediction 功能，需在 PS 7+ 才能使用
-$IsPS7OrLater = $PSVersionTable.PSVersion.Major -ge 7
-
 if (Get-Module -ListAvailable PSReadLine) {
-    if ($IsPS7OrLater) {
-        # 設定預測來源為「歷史紀錄」
-        Set-PSReadLineOption -PredictionSource History
+    # 設定預測來源為「歷史紀錄」
+    Set-PSReadLineOption -PredictionSource History
 
-        # 設定預測顯示風格為「清單模式」 (若喜歡 Zsh 灰字感，可將 ListView 改為 InlineView)
-        Set-PSReadLineOption -PredictionViewStyle ListView
+    # 設定預測顯示風格為「清單模式」 (若喜歡 Zsh 灰字感，可將 ListView 改為 InlineView)
+    Set-PSReadLineOption -PredictionViewStyle ListView
 
-        # 額外建議：設定 F2 鍵可以切換 ViewStyle (在清單與行內預測間切換)
-        Set-PSReadLineKeyHandler -Key F2 -Function SwitchPredictionView
+    # 額外建議：設定 F2 鍵可以切換 ViewStyle (在清單與行內預測間切換)
+    Set-PSReadLineKeyHandler -Key F2 -Function SwitchPredictionView
 
-        Write-Host " [UI] PSReadLine History Prediction Enabled." -ForegroundColor Magenta
-    } else {
-        Write-Host " [UI] PSReadLine loaded (PS 5.1 - Prediction not supported)." -ForegroundColor DarkYellow
-    }
+    Write-Host " [UI] PSReadLine History Prediction Enabled." -ForegroundColor Magenta
 }
 
 # =============================================================================
@@ -121,22 +114,19 @@ function reload { . $PROFILE } # 快速重載設定
 # 5. 互動功能增強 (PSReadLine + FZF)
 # =============================================================================
 if (Get-Module -ListAvailable PSReadLine) {
-    # Tab: 自動完成 (選單式) - PS 5.1 和 PS 7+ 都支援
-    Set-PSReadLineKeyHandler -Key Tab -Function MenuComplete
+    Set-PSReadLineOption -PredictionSource History
+    Set-PSReadLineOption -PredictionViewStyle ListView
 
-    if ($IsPS7OrLater) {
-        # PS 7+ 專用功能
-        Set-PSReadLineOption -PredictionSource History
-        Set-PSReadLineOption -PredictionViewStyle ListView
-
-        # [顏色微調] 讓預測的文字在深色背景更明顯 (淡灰色)
-        Set-PSReadLineOption -Colors @{
-            "InlinePrediction" = "#808080"
-        }
-
-        # F2: 切換顯示模式 (ListView <-> Inline)
-        Set-PSReadLineKeyHandler -Key F2 -Function SwitchPredictionView
+    # [顏色微調] 讓預測的文字在深色背景更明顯 (淡灰色)
+    Set-PSReadLineOption -Colors @{
+        "InlinePrediction" = "#808080"
     }
+
+    # [鍵盤操作]
+    # F2: 切換顯示模式 (ListView <-> Inline)
+    Set-PSReadLineKeyHandler -Key F2 -Function SwitchPredictionView
+    # Tab: 自動完成 (選單式)
+    Set-PSReadLineKeyHandler -Key Tab -Function MenuComplete
 }
 
 # [PSFzf] 終極歷史搜尋 (需安裝 fzf 和 PSFzf)
@@ -154,3 +144,20 @@ if (Get-Module -ListAvailable PSFzf) {
 }
 
 Write-Host " [System] Valor's Environment Loaded Successfully." -ForegroundColor Cyan
+
+# =============================================================================
+# 6. OSC 7 — WezTerm Session 還原必要（必須在 Starship init 之後）
+# =============================================================================
+# WezTerm 需要 shell 透過 OSC 7 通知當前工作目錄，否則 session 存檔只會記到 HOME
+if ($env:TERM_PROGRAM -eq "WezTerm") {
+    $__wt_original_prompt = $function:prompt
+    function prompt {
+        # 發送 OSC 7 escape sequence
+        $host_name = [System.Net.Dns]::GetHostName()
+        $cwd = $PWD.Path.Replace('\', '/')
+        Write-Host -NoNewline "`e]7;file://$host_name/$cwd`e\"
+        # 呼叫原始 prompt（Starship 或預設）
+        if ($__wt_original_prompt) { & $__wt_original_prompt } else { "PS $PWD> " }
+    }
+    Write-Host " [WezTerm] OSC 7 CWD tracking enabled." -ForegroundColor DarkYellow
+}

@@ -6,6 +6,7 @@ dist/
 .venv
 __pycache__
 .pytest_cache/
+.worktrees/
 
 # macOS
 .DS_Store
@@ -15,6 +16,8 @@ build
 dist
 *.egg-info
 .coverage
+.ruff_cache
+**/tests/tmp-output/
 
 # 專案專用
 logs
@@ -27,8 +30,10 @@ plugins/ecc-hooks/coverage
 
 
 # Personal settings
+settings/
 meassage/
 message/
+conversations/
 .claude/settings.local.json
 HEARTBEAT.md
 SOUL.md
@@ -36,3 +41,5 @@ IDENTITY.md
 USER.md
 TOOLS.md
 BOOTSTRAP.md
+.spectra/
+openspec/.vector-search.db
