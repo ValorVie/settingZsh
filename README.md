@@ -65,6 +65,16 @@
    update.bat
    ```
 
+### chezmoi 遷移規劃（進行中）
+
+目前已建立 `settingZsh -> chezmoi` 的遷移設計與 capability parity matrix：
+
+- `docs/plans/2026-03-15-settingzsh-chezmoi-migration-design.md`
+- `docs/plans/2026-03-15-settingzsh-chezmoi-migration.md`
+- `docs/plans/2026-03-15-settingzsh-capability-parity.md`
+
+後續遷移會以 parity matrix 為準，確保既有 macOS / Linux / Windows 可見結果不退化。
+
 
 ---
 

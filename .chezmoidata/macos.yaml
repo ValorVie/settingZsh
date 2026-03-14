@@ -1,0 +1,11 @@
+platform:
+  name: "macos"
+  package_manager: "brew"
+  shell: "zsh"
+
+paths:
+  font_dir: "~/Library/Fonts"
+  nvim_dir: "~/.config/nvim"
+
+features:
+  supports_sudo_fallback: false

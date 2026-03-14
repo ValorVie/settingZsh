@@ -1,0 +1,19 @@
+platform:
+  name: "windows"
+  package_manager: "winget"
+  shell: "powershell"
+
+paths:
+  powershell_profile_v7: "~/Documents/PowerShell/Microsoft.PowerShell_profile.ps1"
+  powershell_profile_v5: "~/Documents/WindowsPowerShell/Microsoft.PowerShell_profile.ps1"
+  nvim_dir: "~/AppData/Local/nvim"
+  font_dir: "~/AppData/Local/Microsoft/Windows/Fonts"
+
+modules:
+  powershell:
+    - "Terminal-Icons"
+    - "ZLocation"
+    - "PSFzf"
+
+features:
+  supports_sudo_fallback: false

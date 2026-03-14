@@ -1,0 +1,13 @@
+features:
+  editor: false
+  private_ssh_overlay: false
+  install_fonts: true
+
+ssh:
+  config_main: "~/.ssh/config"
+  config_include_dir: "~/.ssh/config.d"
+  private_config_file: "~/.ssh/config.d/90-private.conf"
+
+migration:
+  parity_matrix: "docs/plans/2026-03-15-settingzsh-capability-parity.md"
+  deploy_mode: "two-phase"

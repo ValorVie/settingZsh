@@ -1,0 +1,11 @@
+platform:
+  name: "linux"
+  package_manager: "apt"
+  shell: "zsh"
+
+paths:
+  font_dir: "~/.local/share/fonts/MapleMono"
+  nvim_dir: "~/.config/nvim"
+
+features:
+  supports_sudo_fallback: true
