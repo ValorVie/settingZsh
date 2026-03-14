@@ -104,6 +104,17 @@ Task 4 目前已建立 platform install run scripts（chezmoi 模型）：
 - `run_onchange_after_30-install-editor.ps1.tmpl`
 - `tests/chezmoi/test_scripts_presence.sh`
 
+Task 5 目前已收斂 Linux 無 sudo fallback 與 Windows profile/modules parity：
+
+- `run_once_before_10-install-base-packages.sh.tmpl`（non-interactive sudo 檢查）
+- `run_onchange_after_30-install-editor.sh.tmpl`（Linux fallback：ripgrep / fd / neovim / lazygit）
+- `run_once_before_10-install-base-packages.ps1.tmpl`（Windows module parity guard）
+- `home/dot_config/settingzsh/powershell/public-baseline.ps1.tmpl`
+- `home/Documents/PowerShell/Microsoft.PowerShell_profile.ps1.tmpl`
+- `home/Documents/WindowsPowerShell/Microsoft.PowerShell_profile.ps1.tmpl`
+- `tests/chezmoi/test_linux_fallback.sh`
+- `tests/chezmoi/test_windows_profile.ps1`
+
 
 ---
 

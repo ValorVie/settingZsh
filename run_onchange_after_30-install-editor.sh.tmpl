@@ -5,6 +5,9 @@ OS="{{ .chezmoi.os }}"
 FEATURE_EDITOR_DEFAULT="{{ if .feature_editor }}true{{ else }}false{{ end }}"
 FEATURE_EDITOR="${SETTINGZSH_FEATURE_EDITOR:-$FEATURE_EDITOR_DEFAULT}"
 NVM_VERSION="v0.40.1"
+LAZYGIT_VERSION="0.44.1"
+RIPGREP_VERSION="14.1.1"
+FD_VERSION="10.2.0"
 
 if [[ ! "$FEATURE_EDITOR" =~ ^(1|true|TRUE|yes|YES|on|ON)$ ]]; then
   echo "[settingzsh] editor feature disabled, skip editor install script"
@@ -12,6 +15,22 @@ if [[ ! "$FEATURE_EDITOR" =~ ^(1|true|TRUE|yes|YES|on|ON)$ ]]; then
 fi
 
 SOURCE_DIR="${CHEZMOI_SOURCE_DIR:-{{ .chezmoi.sourceDir }}}"
+
+can_use_sudo() {
+  command -v sudo >/dev/null 2>&1 && sudo -n true >/dev/null 2>&1
+}
+
+run_apt() {
+  if [[ "$(id -u)" -eq 0 ]]; then
+    apt "$@"
+    return
+  fi
+  if can_use_sudo; then
+    sudo -n apt "$@"
+    return
+  fi
+  return 1
+}
 
 install_nvm_and_node_lts() {
   if [ ! -s "$HOME/.nvm/nvm.sh" ]; then
@@ -64,6 +83,97 @@ merge_vimrc() {
     --type "vim"
 }
 
+install_rg_fallback() {
+  if command -v rg >/dev/null 2>&1; then
+    return
+  fi
+  if ! command -v curl >/dev/null 2>&1; then
+    echo "[settingzsh] curl unavailable, skip ripgrep fallback"
+    return
+  fi
+
+  local tmp_dir
+  tmp_dir="$(mktemp -d)"
+  local archive="$tmp_dir/ripgrep.tar.gz"
+  local package="ripgrep-${RIPGREP_VERSION}-x86_64-unknown-linux-musl"
+  local url="https://github.com/BurntSushi/ripgrep/releases/download/${RIPGREP_VERSION}/${package}.tar.gz"
+
+  if curl -fsSL "$url" -o "$archive" && tar xzf "$archive" -C "$tmp_dir"; then
+    install "$tmp_dir/$package/rg" "$HOME/.local/bin/rg"
+  else
+    echo "[settingzsh] ripgrep fallback install failed"
+  fi
+  rm -rf "$tmp_dir"
+}
+
+install_fd_fallback() {
+  if command -v fd >/dev/null 2>&1 || command -v fdfind >/dev/null 2>&1; then
+    return
+  fi
+  if ! command -v curl >/dev/null 2>&1; then
+    echo "[settingzsh] curl unavailable, skip fd fallback"
+    return
+  fi
+
+  local tmp_dir
+  tmp_dir="$(mktemp -d)"
+  local archive="$tmp_dir/fd.tar.gz"
+  local package="fd-v${FD_VERSION}-x86_64-unknown-linux-musl"
+  local url="https://github.com/sharkdp/fd/releases/download/v${FD_VERSION}/${package}.tar.gz"
+
+  if curl -fsSL "$url" -o "$archive" && tar xzf "$archive" -C "$tmp_dir"; then
+    install "$tmp_dir/$package/fd" "$HOME/.local/bin/fd"
+  else
+    echo "[settingzsh] fd fallback install failed"
+  fi
+  rm -rf "$tmp_dir"
+}
+
+install_nvim_fallback() {
+  if command -v nvim >/dev/null 2>&1; then
+    return
+  fi
+  if ! command -v curl >/dev/null 2>&1; then
+    echo "[settingzsh] curl unavailable, skip neovim fallback"
+    return
+  fi
+
+  local tmp_dir
+  tmp_dir="$(mktemp -d)"
+  local archive="$tmp_dir/nvim-linux-x86_64.tar.gz"
+  local url="https://github.com/neovim/neovim/releases/latest/download/nvim-linux-x86_64.tar.gz"
+
+  if curl -fsSL "$url" -o "$archive" && tar xzf "$archive" -C "$tmp_dir"; then
+    mkdir -p "$HOME/.local"
+    cp -R "$tmp_dir/nvim-linux-x86_64/." "$HOME/.local/"
+  else
+    echo "[settingzsh] neovim fallback install failed"
+  fi
+  rm -rf "$tmp_dir"
+}
+
+install_lazygit_fallback() {
+  if command -v lazygit >/dev/null 2>&1; then
+    return
+  fi
+  if ! command -v curl >/dev/null 2>&1; then
+    echo "[settingzsh] curl unavailable, skip lazygit fallback"
+    return
+  fi
+
+  local tmp_dir
+  tmp_dir="$(mktemp -d)"
+  local archive="$tmp_dir/lazygit.tar.gz"
+  local url="https://github.com/jesseduffield/lazygit/releases/download/v${LAZYGIT_VERSION}/lazygit_${LAZYGIT_VERSION}_Linux_x86_64.tar.gz"
+
+  if curl -fsSL "$url" -o "$archive" && tar xzf "$archive" -C "$tmp_dir" lazygit; then
+    install "$tmp_dir/lazygit" "$HOME/.local/bin/lazygit"
+  else
+    echo "[settingzsh] lazygit fallback install failed"
+  fi
+  rm -rf "$tmp_dir"
+}
+
 install_darwin_editor() {
   if ! command -v brew >/dev/null 2>&1; then
     echo "[settingzsh] Homebrew not found, skip darwin editor install"
@@ -73,11 +183,16 @@ install_darwin_editor() {
 }
 
 install_linux_editor() {
-  if command -v apt >/dev/null 2>&1 && command -v sudo >/dev/null 2>&1; then
-    sudo apt update -y
-    sudo apt install -y build-essential vim ripgrep fd-find neovim
+  if command -v apt >/dev/null 2>&1 && run_apt update -y && run_apt install -y build-essential vim ripgrep fd-find neovim; then
+    :
   else
-    echo "[settingzsh] apt/sudo missing, editor package fallback will be expanded in task5"
+    echo "[settingzsh] non-interactive sudo unavailable, using linux editor fallback installers"
+    command -v gcc >/dev/null 2>&1 || echo "[settingzsh] gcc missing (treesitter compile may fail)"
+    command -v vim >/dev/null 2>&1 || echo "[settingzsh] vim missing (nvim still supported)"
+    install_rg_fallback
+    install_fd_fallback
+    install_nvim_fallback
+    install_lazygit_fallback
   fi
 }
 

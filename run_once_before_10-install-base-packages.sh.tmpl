@@ -10,6 +10,22 @@ ensure_common_dirs() {
   mkdir -p "$HOME/.config/settingzsh/local.d"
 }
 
+can_use_sudo() {
+  command -v sudo >/dev/null 2>&1 && sudo -n true >/dev/null 2>&1
+}
+
+run_apt() {
+  if [[ "$(id -u)" -eq 0 ]]; then
+    apt "$@"
+    return
+  fi
+  if can_use_sudo; then
+    sudo -n apt "$@"
+    return
+  fi
+  return 1
+}
+
 install_uv() {
   if command -v uv >/dev/null 2>&1; then
     return
@@ -33,11 +49,10 @@ install_darwin_base() {
 
 install_linux_base() {
   if command -v apt >/dev/null 2>&1; then
-    if command -v sudo >/dev/null 2>&1; then
-      sudo apt update -y
-      sudo apt install -y zsh git unzip xz-utils fontconfig curl ca-certificates fzf
+    if run_apt update -y && run_apt install -y zsh git unzip xz-utils fontconfig curl ca-certificates fzf; then
+      :
     else
-      echo "[settingzsh] sudo not available, skip apt base package install (will be handled in task5 fallback)"
+      echo "[settingzsh] non-interactive sudo unavailable, skip apt base package install"
     fi
   fi
 
