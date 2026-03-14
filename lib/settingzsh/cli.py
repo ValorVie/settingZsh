@@ -29,6 +29,12 @@ def _run_doctor() -> None:
     _ = run_doctor(target_home=Path.home())
 
 
+def _run_migrate() -> None:
+    from settingzsh.migrate import run_migrate
+
+    _ = run_migrate(target_home=Path.home())
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
@@ -36,4 +42,6 @@ def main(argv: list[str] | None = None) -> int:
         _run_setup_preview()
     elif args.command == "doctor":
         _run_doctor()
+    elif args.command == "migrate":
+        _run_migrate()
     return 0

@@ -6,9 +6,16 @@ from settingzsh.shellgen import (
     render_managed_fragments as _render_managed_fragments,
 )
 
+BOOTSTRAP_BEGIN = "# >>> settingZsh bootstrap >>>"
+BOOTSTRAP_END = "# <<< settingZsh bootstrap <<<"
+
 
 def render_bootstrap_block() -> str:
     return _render_bootstrap_block()
+
+
+def has_bootstrap_block(content: str) -> bool:
+    return BOOTSTRAP_BEGIN in content and BOOTSTRAP_END in content
 
 
 def render_init_zsh() -> str:
