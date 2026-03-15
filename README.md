@@ -2,6 +2,11 @@
 
 跨平台 shell / profile baseline，現在以 `chezmoi` 作為主要控制面，支援 macOS、Linux、Windows，並保留 `public baseline + custom private repo` 的 SSH 分層模型。
 
+延伸文件：
+
+- `docs/architecture.md`：架構、dotfiles / `chezmoi` 原理與專案責任邊界
+- `docs/editor-guide.md`：Vim / Neovim 配置與使用方式
+
 ## 這個 repo 會做什麼
 
 - 管理 macOS / Linux 的 `~/.zshrc` bootstrap 與 `~/.config/settingzsh/managed.d/*.zsh`
