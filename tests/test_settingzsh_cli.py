@@ -11,7 +11,9 @@ if str(_LIB_ROOT) not in sys.path:
     sys.path.insert(0, str(_LIB_ROOT))
 
 from settingzsh.cli import build_parser
+from settingzsh.cli import run_setup
 from settingzsh.cli import run_reconcile
+from settingzsh.state import PreflightResult
 
 
 def _extract_subcommands(parser: argparse.ArgumentParser) -> set[str]:
@@ -23,9 +25,16 @@ def _extract_subcommands(parser: argparse.ArgumentParser) -> set[str]:
 
 def test_cli_exposes_expected_commands() -> None:
     parser = build_parser()
-    assert {"setup", "update", "doctor", "migrate", "reconcile"} <= _extract_subcommands(
-        parser
-    )
+    assert {
+        "setup",
+        "update",
+        "doctor",
+        "migrate",
+        "reconcile",
+        "preflight",
+        "adopt",
+        "legacy-import",
+    } <= _extract_subcommands(parser)
 
 
 def test_reconcile_writes_bootstrap_and_managed_files(
@@ -77,3 +86,32 @@ def test_reconcile_preserves_existing_managed_fragment(
     assert result.status == "reconciled"
     assert base_fragment.read_text(encoding="utf-8") == "export KEEP_EXISTING=1\n"
     assert str(base_fragment) not in result.modified_files
+
+
+def test_setup_blocks_when_preflight_requires_adopt(
+    tmp_path: Path, monkeypatch
+) -> None:
+    home = tmp_path / "home"
+    home.mkdir(parents=True, exist_ok=True)
+
+    monkeypatch.setattr(
+        "settingzsh.cli.run_preflight",
+        lambda target_home: PreflightResult(
+            status="needs_adopt",
+            issues=["heavy_existing_shell"],
+        ),
+    )
+    monkeypatch.setattr(
+        "settingzsh.cli.run_adopt",
+        lambda target_home: type(
+            "AdoptStub",
+            (),
+            {"status": "reported", "issues": [], "modified_files": ["report.md"]},
+        )(),
+    )
+
+    result = run_setup(target_home=home)
+
+    assert result.status == "needs_adopt"
+    assert result.issues == ["heavy_existing_shell"]
+    assert result.modified_files == ["report.md"]

@@ -10,9 +10,12 @@ if str(_LIB_ROOT) not in sys.path:
     sys.path.insert(0, str(_LIB_ROOT))
 
 from settingzsh.bootstrap import (
+    is_bootstrap_file,
     render_bootstrap_block,
+    render_bootstrap_file,
     render_init_zsh,
     render_managed_fragments,
+    strip_bootstrap_content,
 )
 from settingzsh.cli import main
 
@@ -21,6 +24,13 @@ def test_render_bootstrap_block() -> None:
     block = render_bootstrap_block()
     assert "settingZsh bootstrap" in block
     assert 'source "$HOME/.config/settingzsh/init.zsh"' in block
+
+
+def test_render_bootstrap_file_is_minimal_root_zshrc() -> None:
+    content = render_bootstrap_file()
+    assert "# managed by chezmoi: settingZsh public baseline" in content
+    assert 'if [ -f "$HOME/.config/settingzsh/init.zsh" ]; then' in content
+    assert is_bootstrap_file(content) is True
 
 
 def test_render_init_zsh_loads_managed_fragments_once() -> None:
@@ -43,6 +53,16 @@ def test_render_managed_fragments_use_real_shell_content() -> None:
     assert "ZINIT_HOME=" in fragments["10-base.zsh"]
     assert "lazy_nvm()" in fragments["40-editor.zsh"]
     assert "SETTINGZSH_DISABLE_EDITOR_SHELL" in fragments["40-editor.zsh"]
+
+
+def test_strip_bootstrap_content_removes_inline_bootstrap_block() -> None:
+    content = (
+        "export OLD_VAR=1\n"
+        "# >>> settingZsh bootstrap >>>\n"
+        "[ -f \"$HOME/.config/settingzsh/init.zsh\" ] && source \"$HOME/.config/settingzsh/init.zsh\"\n"
+        "# <<< settingZsh bootstrap <<<\n"
+    )
+    assert strip_bootstrap_content(content) == "export OLD_VAR=1\n"
 
 
 def test_setup_command_executes_preview_path(tmp_path: Path, monkeypatch) -> None:

@@ -5,14 +5,19 @@ import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from settingzsh.adopt import run_adopt
 from settingzsh.bootstrap import (
     has_bootstrap_block,
+    is_bootstrap_file,
+    render_bootstrap_file,
     render_bootstrap_block,
     render_init_zsh,
     render_managed_fragments,
 )
 from settingzsh.doctor import run_doctor
+from settingzsh.legacy_import import run_legacy_import
 from settingzsh.migrate import run_migrate
+from settingzsh.preflight import run_preflight
 from settingzsh.reconcile import capture_file_snapshots, restore_file_snapshots, validate_shell
 
 
@@ -26,14 +31,26 @@ class CommandResult:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="settingzsh")
     subparsers = parser.add_subparsers(dest="command", required=True)
-    for name in ("setup", "update", "doctor", "migrate", "reconcile"):
+    for name in (
+        "setup",
+        "update",
+        "doctor",
+        "migrate",
+        "reconcile",
+        "preflight",
+        "adopt",
+        "legacy-import",
+    ):
         command_parser = subparsers.add_parser(name)
         command_parser.add_argument("--home", type=Path, default=Path.home())
     return parser
 
 
 def _ensure_bootstrap_block(zshrc_content: str) -> str:
-    if has_bootstrap_block(zshrc_content):
+    if not zshrc_content.strip():
+        return render_bootstrap_file()
+
+    if has_bootstrap_block(zshrc_content) or is_bootstrap_file(zshrc_content):
         content = zshrc_content
     else:
         content = zshrc_content
@@ -107,11 +124,21 @@ def run_reconcile(
 
 
 def run_setup(target_home: Path, *, validator=None) -> CommandResult:
+    preflight = run_preflight(target_home=target_home)
+    if preflight.status == "needs_adopt":
+        adopt_result = run_adopt(target_home=target_home)
+        return CommandResult(
+            status=preflight.status,
+            modified_files=adopt_result.modified_files,
+            issues=preflight.issues,
+        )
+    if preflight.status != "safe":
+        return CommandResult(status=preflight.status, issues=preflight.issues)
     return run_reconcile(target_home=target_home, validator=validator)
 
 
 def run_update(target_home: Path, *, validator=None) -> CommandResult:
-    return run_reconcile(target_home=target_home, validator=validator)
+    return run_setup(target_home=target_home, validator=validator)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -129,6 +156,15 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "doctor":
         result = run_doctor(target_home=args.home)
         return 0 if result.status == "ok" else 1
+    if args.command == "preflight":
+        result = run_preflight(target_home=args.home)
+        return 0 if result.status == "safe" else 1
+    if args.command == "adopt":
+        result = run_adopt(target_home=args.home)
+        return 0 if result.status in {"reported", "no-op"} else 1
+    if args.command == "legacy-import":
+        result = run_legacy_import(target_home=args.home, draft=True)
+        return 0 if result.status in {"drafted", "no-op"} else 1
     if args.command == "migrate":
         result = run_migrate(target_home=args.home)
         return 0 if result.status != "rolled_back" else 1

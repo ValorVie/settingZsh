@@ -1,0 +1,23 @@
+# chezmoi:modify-template
+{{- $current := .chezmoi.stdin -}}
+{{- if eq (trim $current) "" -}}
+# managed by chezmoi: settingZsh public baseline
+if [ -f "$HOME/.config/settingzsh/init.zsh" ]; then
+  source "$HOME/.config/settingzsh/init.zsh"
+fi
+{{- else if and (contains $current "# >>> settingZsh bootstrap >>>") (contains $current "# <<< settingZsh bootstrap <<<") -}}
+{{- if hasSuffix $current "\n" -}}
+{{ $current -}}
+{{- else -}}
+{{ printf "%s\n" $current -}}
+{{- end -}}
+{{- else -}}
+{{- if hasSuffix $current "\n" -}}
+{{ $current -}}
+{{- else -}}
+{{ printf "%s\n" $current -}}
+{{- end }}
+# >>> settingZsh bootstrap >>>
+[ -f "$HOME/.config/settingzsh/init.zsh" ] && source "$HOME/.config/settingzsh/init.zsh"
+# <<< settingZsh bootstrap <<<
+{{- end -}}

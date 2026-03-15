@@ -22,14 +22,14 @@ require_contains() {
     fi
 }
 
-require_file "home/dot_zshrc.tmpl"
+require_file "home/modify_dot_zshrc"
 require_file "home/private_dot_ssh/config.tmpl"
 require_file "home/private_dot_ssh/config.d/10-common.conf.tmpl"
 require_file "home/dot_config/settingzsh/powershell/public-baseline.ps1.tmpl"
 require_file "home/Documents/PowerShell/Microsoft.PowerShell_profile.ps1.tmpl"
 require_file "home/Documents/WindowsPowerShell/Microsoft.PowerShell_profile.ps1.tmpl"
 
-require_contains "home/dot_zshrc.tmpl" ".config/settingzsh/init.zsh" "zsh bootstrap missing init source"
+require_contains "home/modify_dot_zshrc" ".config/settingzsh/init.zsh" "zsh bootstrap missing init source"
 require_contains "home/private_dot_ssh/config.tmpl" "Host *" "ssh main config missing Host *"
 require_contains "home/private_dot_ssh/config.tmpl" "Include ~/.ssh/config.d/*.conf" "ssh main config missing Include model"
 require_contains "home/dot_config/settingzsh/powershell/public-baseline.ps1.tmpl" "PSVersionTable.PSVersion.Major" "powershell baseline missing major-version branch"
@@ -41,30 +41,28 @@ if [ -f "home/dot_config/powershell/Microsoft.PowerShell_profile.ps1.tmpl" ]; th
     exit 1
 fi
 
-# Keep .zshrc bootstrap as a minimal source-state file.
-non_blank_lines="$(grep -cve '^[[:space:]]*$' home/dot_zshrc.tmpl)"
-if [ "$non_blank_lines" -ne 4 ]; then
-    echo "zsh bootstrap should stay minimal (4 non-blank lines)"
+if [ -f "home/dot_zshrc.tmpl" ]; then
+    echo "legacy whole-file zshrc source state still present"
     exit 1
 fi
-if ! grep -Fxq '# managed by chezmoi: settingZsh public baseline' home/dot_zshrc.tmpl; then
-    echo "zsh bootstrap missing expected managed header"
+if ! grep -Fxq '# chezmoi:modify-template' home/modify_dot_zshrc; then
+    echo "modify zshrc source state missing modify-template marker"
     exit 1
 fi
-if ! grep -Fxq 'if [ -f "$HOME/.config/settingzsh/init.zsh" ]; then' home/dot_zshrc.tmpl; then
-    echo "zsh bootstrap missing expected if guard"
+if ! rg -Fq '.chezmoi.stdin' home/modify_dot_zshrc; then
+    echo "modify zshrc source state missing stdin handling"
     exit 1
 fi
-if ! grep -Fxq '  source "$HOME/.config/settingzsh/init.zsh"' home/dot_zshrc.tmpl; then
-    echo "zsh bootstrap missing expected source command"
+if ! rg -Fq '# managed by chezmoi: settingZsh public baseline' home/modify_dot_zshrc; then
+    echo "modify zshrc source state missing bootstrap create path"
     exit 1
 fi
-if ! grep -Fxq 'fi' home/dot_zshrc.tmpl; then
-    echo "zsh bootstrap missing closing fi"
+if ! rg -Fq '# >>> settingZsh bootstrap >>>' home/modify_dot_zshrc; then
+    echo "modify zshrc source state missing bootstrap block insert path"
     exit 1
 fi
-if rg -q -e 'zinit|compinit|brew shellenv|zoxide init|bindkey|HISTSIZE|alias ' home/dot_zshrc.tmpl; then
-    echo "zsh bootstrap includes baseline logic that should stay in later tasks"
+if rg -q -e 'zinit|compinit|brew shellenv|zoxide init|bindkey|HISTSIZE|alias ' home/modify_dot_zshrc; then
+    echo "modify zshrc source state includes baseline logic that should stay in later tasks"
     exit 1
 fi
 

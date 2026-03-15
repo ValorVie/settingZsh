@@ -13,6 +13,7 @@ if str(_LIB_ROOT) not in sys.path:
 
 from settingzsh.migrate import run_migrate
 from settingzsh.doctor import run_doctor
+from settingzsh.reconcile import inspect_shell_validation
 from settingzsh.reconcile import validate_shell
 
 
@@ -55,7 +56,7 @@ def test_failed_validation_restores_existing_managed_fragment(tmp_path: Path) ->
     assert not (home / ".config" / "settingzsh" / "init.zsh").exists()
 
 
-def test_doctor_uses_syntax_only_validation_by_default(
+def test_doctor_uses_interactive_validation_by_default(
     tmp_path: Path, monkeypatch
 ) -> None:
     home = tmp_path / "home"
@@ -63,10 +64,22 @@ def test_doctor_uses_syntax_only_validation_by_default(
     (home / ".zshrc").write_text("export TEST_VAR=1\n", encoding="utf-8")
     calls: list[Path] = []
 
-    def fake_validator(target_home: Path) -> None:
+    def fake_validator(target_home: Path):
         calls.append(target_home)
+        return type(
+            "ValidationStub",
+            (),
+            {
+                "status": "ok",
+                "issues": [],
+                "syntax_stdout": "",
+                "syntax_stderr": "",
+                "interactive_stdout": "",
+                "interactive_stderr": "",
+            },
+        )()
 
-    monkeypatch.setattr("settingzsh.doctor.validate_zsh_syntax", fake_validator)
+    monkeypatch.setattr("settingzsh.doctor.inspect_shell_validation", fake_validator)
 
     result = run_doctor(target_home=home)
     assert result.status == "ok"
@@ -106,7 +119,7 @@ def test_failed_validation_rolls_back_paths_from_write_plan(
     assert dynamic_path.read_text(encoding="utf-8") == "# pre-existing dynamic\n"
 
 
-def test_validate_shell_runs_syntax_and_interactive_checks(tmp_path: Path) -> None:
+def test_inspect_shell_validation_runs_syntax_and_interactive_checks(tmp_path: Path) -> None:
     home = tmp_path / "home"
     home.mkdir(parents=True, exist_ok=True)
     (home / ".zshrc").write_text("export TEST_VAR=1\n", encoding="utf-8")
@@ -116,15 +129,36 @@ def test_validate_shell_runs_syntax_and_interactive_checks(tmp_path: Path) -> No
     def fake_run(
         cmd: list[str], *, check: bool, capture_output: bool, text: bool, env: dict[str, str]
     ) -> subprocess.CompletedProcess[str]:
-        assert check is True
+        assert check is False
         assert capture_output is True
         assert text is True
         calls.append((cmd, env))
         return subprocess.CompletedProcess(cmd, 0, "", "")
 
-    validate_shell(home, runner=fake_run)
+    result = inspect_shell_validation(home, runner=fake_run)
 
+    assert result.status == "ok"
     assert calls[0][0] == ["zsh", "-n", str(home / ".zshrc")]
     assert calls[1][0] == ["zsh", "-i", "-c", "exit"]
     assert calls[1][1]["ZDOTDIR"] == str(home)
     assert calls[1][1]["HOME"] == str(home)
+
+
+def test_validate_shell_raises_on_known_interactive_warning(tmp_path: Path) -> None:
+    home = tmp_path / "home"
+    home.mkdir(parents=True, exist_ok=True)
+    (home / ".zshrc").write_text("export TEST_VAR=1\n", encoding="utf-8")
+
+    def fake_run(
+        cmd: list[str], *, check: bool, capture_output: bool, text: bool, env: dict[str, str]
+    ) -> subprocess.CompletedProcess[str]:
+        if cmd[:2] == ["zsh", "-n"]:
+            return subprocess.CompletedProcess(cmd, 0, "", "")
+        return subprocess.CompletedProcess(cmd, 0, "", "gitstatus failed to initialize")
+
+    try:
+        validate_shell(home, runner=fake_run)
+    except RuntimeError as exc:
+        assert "interactive_shell_warning" in str(exc)
+    else:
+        raise AssertionError("validate_shell should fail on interactive warnings")

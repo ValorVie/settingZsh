@@ -30,6 +30,16 @@ def render_bootstrap_block() -> str:
     return "\n".join(lines) + "\n"
 
 
+def render_bootstrap_file() -> str:
+    lines = (
+        "# managed by chezmoi: settingZsh public baseline",
+        'if [ -f "$HOME/.config/settingzsh/init.zsh" ]; then',
+        '  source "$HOME/.config/settingzsh/init.zsh"',
+        "fi",
+    )
+    return "\n".join(lines) + "\n"
+
+
 def render_init_zsh() -> str:
     lines = (
         '[[ -n "${SETTINGZSH_LOADED:-}" ]] && return 0',

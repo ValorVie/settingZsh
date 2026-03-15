@@ -13,7 +13,7 @@
 
 | 現有能力 | 目前來源 | 新 chezmoi 機制 | 是否必保留 | 驗證方式 |
 | :--- | :--- | :--- | :--- | :--- |
-| macOS/Linux Zsh baseline | `templates/zshrc_base_mac.zsh` `templates/zshrc_base_linux.zsh` | `home/dot_zshrc.tmpl` + `home/dot_config/settingzsh/managed.d/*.zsh.tmpl` | MUST | `zsh -n ~/.zshrc` 與啟動 smoke |
+| macOS/Linux Zsh baseline | `templates/zshrc_base_mac.zsh` `templates/zshrc_base_linux.zsh` | `home/modify_dot_zshrc` + `home/dot_config/settingzsh/managed.d/*.zsh.tmpl` | MUST | `zsh -n ~/.zshrc` 與啟動 smoke |
 | Zinit 與預設插件集合 | `README.md`、模板檔 | `managed.d/10-base.zsh.tmpl` | MUST | 檢查模板含 `zinit` 與插件宣告 |
 | `fzf` 安裝與初始化 | `setup_mac.sh` `setup_linux.sh` `setup_win.ps1` | `run_once_*` scripts + 對應 shell/profile 模板 | MUST | `command -v fzf` |
 | `zoxide` 安裝與初始化 | `setup_mac.sh` `setup_linux.sh` | `run_once_*` scripts + shell 模板 | MUST | `command -v zoxide` |
