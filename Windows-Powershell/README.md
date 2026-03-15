@@ -1,59 +1,39 @@
-打開一個**管理員權限**的 PowerShell 視窗，執行一次安裝指令（只需執行一次）：
+# Windows-Powershell（歷史資產）
+
+這個目錄保留的是 **舊版手工維護的 PowerShell profile 參考檔**，不是目前 `chezmoi` 版本的 source state。
+
+## 目前版本真正使用的檔案
+
+Windows 的現行實作請看：
+
+- `home/Documents/PowerShell/Microsoft.PowerShell_profile.ps1.tmpl`
+- `home/Documents/WindowsPowerShell/Microsoft.PowerShell_profile.ps1.tmpl`
+- `home/dot_config/settingzsh/powershell/public-baseline.ps1.tmpl`
+- `run_once_before_10-install-base-packages.ps1.tmpl`
+- `run_once_before_20-install-fonts.ps1.tmpl`
+- `run_onchange_after_30-install-editor.ps1.tmpl`
+
+也就是說，現在的主要入口是 `chezmoi init --apply` / `chezmoi apply`，不是手動照這個資料夾裡的舊說明逐步安裝。
+
+## 這個資料夾現在還有什麼用途
+
+- 對照舊版 PowerShell profile 的歷史內容
+- 協助理解某些舊設定為什麼存在
+- 做 legacy Windows 行為比對時的參考
+
+## 如果你要看目前 PowerShell profile 會落到哪裡
+
+常用 target 路徑如下：
+
+| 目標 | 路徑 |
+|------|------|
+| Windows PowerShell 5.1 | `$HOME\\Documents\\WindowsPowerShell\\Microsoft.PowerShell_profile.ps1` |
+| PowerShell 7+ | `$HOME\\Documents\\PowerShell\\Microsoft.PowerShell_profile.ps1` |
+
+兩者都只會 source 同一份 baseline：
 
 ```powershell
-# 允許執行腳本
-Set-ExecutionPolicy RemoteSigned -Scope CurrentUser
-
-# 允許 PSGallery
-Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
-
-# 安裝推薦模組
-Install-Module -Name Terminal-Icons -Scope CurrentUser -Force
-Install-Module -Name ZLocation -Scope CurrentUser -Force
-Install-Module -Name PSFzf -Scope CurrentUser -Force
-
-# PSFzf 需要底層的 fzf 二進位檔案
-scoop install fzf
-# 或用 winget: winget install fzf
-
-# 如果你有安裝 winget (Win10/11 內建)，安裝 Starship
-winget install starship
+$HOME/.config/settingzsh/powershell/public-baseline.ps1
 ```
 
----
-
-## PowerShell 設定檔位置
-
-在 PowerShell 中可以使用 `$PROFILE` 自動變數來查看設定檔位置：
-
-```powershell
-# 查看目前設定檔路徑
-$PROFILE
-
-# 查看所有設定檔路徑
-$PROFILE | Select-Object *
-```
-
-常用的設定檔位置：
-
-| 作用域 | Windows PowerShell 5.1 | PowerShell 7+ |
-|--------|------------------------|---------------|
-| 目前使用者，目前主機 | `$HOME\Documents\WindowsPowerShell\Microsoft.PowerShell_profile.ps1` | `$HOME\Documents\PowerShell\Microsoft.PowerShell_profile.ps1` |
-| 所有使用者，目前主機 | `$PSHOME\Microsoft.PowerShell_profile.ps1` | 同左 |
-| 目前使用者，所有主機 | `$HOME\Documents\WindowsPowerShell\profile.ps1` | `$HOME\Documents\PowerShell\profile.ps1` |
-
-常用指令：
-
-```powershell
-# 測試設定檔是否存在
-Test-Path $PROFILE
-
-# 用記事本開啟設定檔
-notepad $PROFILE
-
-# 如果設定檔不存在，建立它
-if (!(Test-Path $PROFILE)) { New-Item -Type File -Path $PROFILE -Force }
-```
-
-`$PROFILE` 預設指向「目前使用者，目前主機」的設定檔，這是最常用的一個。
-
+若你要安裝目前版本，請回到 `README.md` 的 `chezmoi` 安裝流程，不要直接照這個目錄的舊手工說明操作。

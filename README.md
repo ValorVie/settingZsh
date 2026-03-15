@@ -144,6 +144,7 @@ exec zsh
 [data]
 feature_editor = false
 private_ssh_overlay = false
+private_ssh_overlay_repo = ""
 install_fonts = true
 platform_profile = "auto"
 ```
@@ -153,7 +154,7 @@ platform_profile = "auto"
 - `feature_editor`
 - `install_fonts`
 
-`private_ssh_overlay` 與 `platform_profile` 目前先保留給後續 private overlay / profile 選擇流程，不代表 public repo 已自動接好 secret repo。
+`private_ssh_overlay`、`private_ssh_overlay_repo` 與 `platform_profile` 目前先保留給後續 private overlay / profile 選擇流程，不代表 public repo 已自動接好 secret repo。
 
 若你要在本機覆蓋預設值，編輯 `~/.config/chezmoi/chezmoi.toml`：
 
@@ -173,10 +174,8 @@ chezmoi apply
 
 這會依平台安裝或部署：
 
-- macOS / Linux：Vim、Neovim、`nvm`、Node.js LTS、`ripgrep`、`fd`、`lazygit`
-- Windows：Neovim、`nvm-windows`、Node.js LTS、`ripgrep`、`fd`、`lazygit`
-- repo 內的 `nvim/` 設定
-- `.vimrc` merge
+- macOS / Linux：Vim、Neovim、`nvm`、Node.js LTS、`ripgrep`、`fd`、`lazygit`、repo 內的 `nvim/` 設定，以及 `.vimrc` merge
+- Windows：Neovim、`nvm-windows`、Node.js LTS、`ripgrep`、`fd`、`lazygit`，以及 repo 內的 `nvim/` 設定
 
 啟用方式有兩種。
 
@@ -371,8 +370,9 @@ uv run --directory lib python -m settingzsh.cli reconcile
 ├── .chezmoidata/
 ├── home/
 │   ├── dot_zshrc.tmpl
-│   ├── dot_config/settingzsh/
-│   ├── dot_config/powershell/
+│   ├── dot_config/settingzsh/init.zsh.tmpl
+│   ├── dot_config/settingzsh/managed.d/
+│   ├── dot_config/settingzsh/powershell/
 │   ├── Documents/PowerShell/
 │   ├── Documents/WindowsPowerShell/
 │   └── private_dot_ssh/

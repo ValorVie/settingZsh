@@ -1,4 +1,11 @@
-# 測試報告：跨平台安裝腳本
+# 歷史測試報告：跨平台安裝腳本
+
+> 這份報告主要記錄 `chezmoi` 遷移前後的過渡期驗證，內容包含舊版 `setup*.sh` / `update*.sh` / Python CLI 流程。它不是目前版本的安裝指南。
+>
+> 目前版本的使用與架構請優先看：
+> - `README.md`
+> - `docs/architecture.md`
+> - `tests/chezmoi/*`
 
 **測試日期：** 2026-03-14
 **測試人員：** Codex (GPT-5)

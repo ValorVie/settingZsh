@@ -124,7 +124,7 @@ repo source state
 │   ├── shell / profile templates
 │   ├── .ssh/config 主檔與共用 config.d
 │   ├── run_* 安裝腳本
-│   ├── nvim / vim / git baseline
+│   ├── nvim / vim baseline
 │   └── machine data / feature flags
 └── legacy compatibility
     └── doctor / migrate / reconcile
@@ -148,7 +148,7 @@ public baseline 是這個專案的唯一主入口與主要 source of truth，負
 - macOS / Linux 的 Zsh bootstrap 與 managed fragments
 - Windows PowerShell 5.1 / 7+ profile baseline
 - `.ssh/config` 主檔與 `config.d/10-common.conf`
-- 通用 git / nvim / vim 設定
+- `nvim/`、`.vimrc` 與 editor 相關部署來源
 - 平台安裝腳本
 - feature flags 與 machine data
 
@@ -173,7 +173,7 @@ SSH secrets 不放在 public repo，而是放在你自己的 `custom private rep
 它不應該管理：
 
 - `~/.ssh/config` 主檔
-- shell / git / nvim 設定
+- shell / nvim / 其他一般 dotfiles
 - `known_hosts`
 
 原因很單純：一旦 private repo 開始承載一般 dotfiles，它就會長成第二套主系統，後續很容易 drift。
