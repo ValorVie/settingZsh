@@ -11,6 +11,17 @@
 - `docs/secrets/gopass.md`：server file secret 操作指南
 - `docs/secrets/sops-age.md`：`SOPS + age` 加密與輪替指南
 
+## README 怎麼讀
+
+如果你只想直接照著做，建議用這個順序讀：
+
+1. `快速開始`
+2. `常見操作場景`
+3. `完整安裝指南`
+4. `SSH 與 custom private repo`
+5. `日常使用`
+6. `故障排查`
+
 ## 這個 repo 會做什麼
 
 - 管理 macOS / Linux 的 `~/.zshrc` bootstrap 與 `~/.config/settingzsh/managed.d/*.zsh`
@@ -138,6 +149,58 @@ exec zsh
 
 重新開啟 PowerShell / Windows Terminal。
 
+## 常見操作場景
+
+### 我是新機器，想直接裝好
+
+1. 安裝 `chezmoi`
+2. `chezmoi init --apply <public-repo>`
+3. 重新開啟 shell
+4. 視需要再開 `feature_editor`
+5. 最後再接你的 `custom private repo`
+
+### 這台機器已經有自己的 `.zshrc`
+
+1. `chezmoi init <public-repo>`
+2. `chezmoi cd`
+3. 跑 `preflight`
+4. 若不是 `safe`，先跑 `adopt`
+5. 確認報告後再決定要不要 `chezmoi apply`
+
+### 我只想更新既有 baseline
+
+1. `chezmoi update`
+2. 若有 shell 異常，再跑 `doctor`
+3. 若懷疑 managed fragments 缺檔，再跑 `reconcile`
+
+### 我想把 SSH 私有設定接上去
+
+1. 先確認 public baseline 已建立 `~/.ssh/config`
+2. 準備好 `custom private repo`
+3. 依你的安全流程 materialize `config.d/*.conf` 與 key files
+4. 跑 `ssh -G <host>` 檢查結果
+
+## preflight 結果怎麼看
+
+`preflight` 只有三種主要結果：
+
+- `safe`
+  - 可以繼續 `chezmoi apply` 或 `reconcile`
+- `needs_adopt`
+  - 代表這台機器已有重型 shell 生態
+  - 先跑 `adopt`，不要直接套用
+- `broken_existing_shell`
+  - 代表現況 shell 本身就不健康
+  - 先修現況，再談導入
+
+最小流程：
+
+```bash
+chezmoi init <public-repo>
+chezmoi cd
+uv run --directory lib python -m settingzsh.cli preflight
+```
+
 ## 安裝後會得到什麼
 
 ### macOS / Linux
@@ -231,6 +294,28 @@ chezmoi apply
 
 ```bash
 SETTINGZSH_FEATURE_EDITOR=true chezmoi apply
+```
+
+### 開啟或關閉 editor feature
+
+開啟：
+
+```toml
+[data]
+feature_editor = true
+```
+
+關閉：
+
+```toml
+[data]
+feature_editor = false
+```
+
+改完後都用同一個指令重新套用：
+
+```bash
+chezmoi apply
 ```
 
 ### Linux 無 sudo 的行為
@@ -370,6 +455,46 @@ custom-private-repo/
 
 > 目前這個 public repo 沒有自動拉取 secret repo；這是刻意的。SSH secrets 的運送方式交給你的 `custom private repo` 與安全流程決定。若要把 private repo push 到遠端，建議先完成 `SOPS + age` 加密（見 `docs/secrets/sops-age.md`）。
 
+### custom private repo 最小接線流程
+
+這是最小可用流程，不含自動化抓取：
+
+1. public baseline 先完成
+
+```bash
+chezmoi init --apply <public-repo>
+```
+
+2. 準備 private repo 結構
+
+- 參考 `examples/valor-ssh-key/`
+- 至少要有 machine-specific `config.d/90-private.conf`
+- key 依 `standard path` / `custom-paths` 分類
+
+3. 若 private repo 會進版控，先做 `SOPS + age`
+
+- 設定 `.sops.yaml`
+- 建立 `owner` + `recovery` recipients
+- 確認 repo 內只存密文
+
+4. materialize 到目標機器
+
+- `~/.ssh/config.d/*.conf`
+- `~/.ssh/<key>`
+- 或 custom managed path
+
+5. 驗證
+
+```bash
+ssh -G <host>
+```
+
+若你是用本 repo 的實際範例結構，還可以額外跑：
+
+```bash
+./scripts/check-ssh-config.sh
+```
+
 ## 日常使用
 
 ### 更新
@@ -394,6 +519,20 @@ chezmoi apply
 
 ```bash
 chezmoi cd
+```
+
+### 常用指令速查
+
+```bash
+chezmoi init --apply <public-repo>
+chezmoi update
+chezmoi diff
+chezmoi apply
+chezmoi cd
+uv run --directory lib python -m settingzsh.cli preflight
+uv run --directory lib python -m settingzsh.cli adopt
+uv run --directory lib python -m settingzsh.cli doctor
+uv run --directory lib python -m settingzsh.cli reconcile
 ```
 
 ## 既有系統導入與診斷
@@ -463,6 +602,57 @@ Windows profile parity 另外有：
 ```powershell
 pwsh -File tests/chezmoi/test_windows_profile.ps1
 ```
+
+## 故障排查
+
+### `chezmoi apply` 前就知道這台機器風險高
+
+先不要硬套，先跑：
+
+```bash
+chezmoi init <public-repo>
+chezmoi cd
+uv run --directory lib python -m settingzsh.cli preflight
+uv run --directory lib python -m settingzsh.cli adopt
+```
+
+### shell 語法看起來正常，但互動模式怪怪的
+
+先跑：
+
+```bash
+uv run --directory lib python -m settingzsh.cli doctor
+```
+
+它會幫你看：
+
+- bootstrap / marker 狀態
+- interactive shell warning
+- 既有 shell 的高風險訊號
+
+### SSH host 能看到，但連線行為不對
+
+先確認：
+
+```bash
+ssh -G <host>
+```
+
+如果你有自己的 private repo，再確認：
+
+- key 是否真的 materialize 到目標路徑
+- `IdentityFile` 與 `IdentitiesOnly yes` 是否一致
+- custom path 是否和實際檔案位置一致
+
+### editor 沒有出現或工具不完整
+
+先確認：
+
+- `feature_editor = true`
+- `chezmoi apply` 已重跑
+- Linux 若無 sudo，是否已走 fallback 安裝路徑
+
+更細節的 editor 行為請看 [docs/editor-guide.md](/Users/arlen/Documents/syncthing/backup/server/Code/settingZsh/.worktrees/settingzsh-chezmoi/docs/editor-guide.md)。
 
 ## 已知限制
 

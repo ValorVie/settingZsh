@@ -31,6 +31,11 @@ def test_readme_mentions_bootstrap_doctor_migrate_and_private_repo() -> None:
     assert "SOPS + age" in readme
     assert "docs/secrets/sops-age.md" in readme
     assert "shared-keys" in readme
+    assert "常見操作場景" in readme
+    assert "故障排查" in readme
+    assert "custom private repo 最小接線流程" in readme
+    assert "preflight 結果怎麼看" in readme
+    assert "開啟或關閉 editor feature" in readme
 
 
 def test_architecture_doc_explains_dotfiles_chezmoi_and_project_layers() -> None:
