@@ -9,6 +9,7 @@
 - `docs/editor-guide.md`：Vim / Neovim 配置與使用方式
 - `docs/secrets/keepassxc-cli.md`：desktop file secret 操作指南
 - `docs/secrets/gopass.md`：server file secret 操作指南
+- `docs/secrets/sops-age.md`：`SOPS + age` 加密與輪替指南
 
 ## 這個 repo 會做什麼
 
@@ -22,6 +23,7 @@
 
 - `public repo` 只管 baseline 與非機密設定
 - SSH keys 與私有 host 規則放在你自己的 `custom private repo`
+- `custom private repo` 建議以 `SOPS + age` 管理密文與 recipients
 - `~/.ssh/config` 主檔永遠由 public baseline 管理
 - `custom private repo` 只應該提供 `~/.ssh/**`
 - `known_hosts` 預設不進版控
@@ -314,7 +316,7 @@ Include ~/.ssh/config.d/*.conf
 
 - 私鑰
 - 公鑰
-- `~/.ssh/config.d/90-private.conf`
+- `~/.ssh/config.d/*.conf`
 - 其他只屬於 SSH 的私有設定
 
 不應該管理：
@@ -335,13 +337,28 @@ repo 內已提供一個參考範本：
 
 ```text
 custom-private-repo/
+├── .sops.yaml
 ├── README.md
-└── .ssh/
-    ├── config.d/
-    │   └── 90-private.conf
-    ├── id_ed25519
-    └── id_ed25519.pub
+├── shared/
+│   └── config.d/
+│       └── 10-common-private.conf
+├── shared-keys/
+│   └── keys/
+│       └── README.md
+├── macmini/
+│   ├── config.d/90-private.conf
+│   ├── keys/
+│   └── custom-paths/
+└── valorpc/
+    ├── config.d/90-private.conf
+    ├── keys/
+    └── custom-paths/
 ```
+
+路徑模型：
+
+- `standard path`：`~/.ssh/<key>`
+- `custom managed path`：例如 `~/.ssh/config/sympasoft-macmini-ssh/<key>`
 
 ### 建議流程
 
@@ -351,7 +368,7 @@ custom-private-repo/
 4. 只把 private repo 的 `.ssh/**` 帶進目標機器
 5. 確認 `~/.ssh/config.d/90-private.conf` 與 key file 權限正確
 
-> 目前這個 public repo 沒有自動拉取 secret repo；這是刻意的。SSH secrets 的運送方式交給你的 `custom private repo` 與安全流程決定。
+> 目前這個 public repo 沒有自動拉取 secret repo；這是刻意的。SSH secrets 的運送方式交給你的 `custom private repo` 與安全流程決定。若要把 private repo push 到遠端，建議先完成 `SOPS + age` 加密（見 `docs/secrets/sops-age.md`）。
 
 ## 日常使用
 

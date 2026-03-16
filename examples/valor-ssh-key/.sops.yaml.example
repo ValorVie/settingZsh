@@ -1,0 +1,17 @@
+creation_rules:
+  - path_regex: ^shared/.*$
+    age:
+      - age1-owner-public-key
+      - age1-recovery-public-key
+  - path_regex: ^shared-keys/.*$
+    age:
+      - age1-owner-public-key
+      - age1-recovery-public-key
+  - path_regex: ^macmini/.*$
+    age:
+      - age1-owner-public-key
+      - age1-recovery-public-key
+  - path_regex: ^valorpc/.*$
+    age:
+      - age1-owner-public-key
+      - age1-recovery-public-key

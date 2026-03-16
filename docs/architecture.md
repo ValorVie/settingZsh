@@ -14,6 +14,7 @@
 
 - 用 `chezmoi` 管理跨平台 dotfiles 與部署流程
 - 用 `public baseline + custom private repo` 處理公開設定與 SSH secrets 的責任切分
+- 用 `SOPS + age` 管理 private SSH repo 的檔案加密與 recipient
 - 用少量專案邏輯補齊原生 dotfiles 工具通常不直接處理的部分
   - 平台工具安裝
   - 字型安裝
@@ -169,7 +170,7 @@ SSH secrets 不放在 public repo，而是放在你自己的 `custom private rep
 
 - `~/.ssh/id_*`
 - `~/.ssh/*.pub`
-- `~/.ssh/config.d/90-private.conf`
+- `~/.ssh/config.d/*.conf`
 - 其他明確屬於 SSH 的私有內容
 
 它不應該管理：
@@ -183,6 +184,14 @@ SSH secrets 不放在 public repo，而是放在你自己的 `custom private rep
 repo 內提供了參考範本：
 
 - `examples/valor-ssh-key/`
+
+範本目錄採顯式分層：
+
+- `shared/config.d/`
+- `shared-keys/keys/`
+- `<machine>/config.d/`
+- `<machine>/keys/`
+- `<machine>/custom-paths/`
 
 README 裡統一稱呼這個概念為 `custom private repo`，不綁死 repo 名稱。
 
@@ -320,6 +329,22 @@ PowerShell 採雙 profile target：
 - 不讓 private repo 變成第二套完整 dotfiles 系統
 - 不再回到整份 `.zshrc` merge 模型
 - 不把 runtime secret 注入納入這一輪 adoption guardrails
+
+## SSH 路徑模型與 `SOPS + age`
+
+private SSH repo 的正式路徑模型分成兩種：
+
+- `standard path`
+  - `~/.ssh/<key>`
+- `custom managed path`
+  - 例如 `~/.ssh/config/sympasoft-macmini-ssh/<key>`
+
+`SOPS + age` 的責任是管理 private repo 的密文與 recipients，不處理 runtime secret 注入。建議至少保留兩組 recipients：
+
+- `owner`
+- `recovery`
+
+詳細操作（`.sops.yaml`、`updatekeys`、`rotate`）請看 [sops-age.md](/Users/arlen/Documents/syncthing/backup/server/Code/settingZsh/.worktrees/settingzsh-chezmoi/docs/secrets/sops-age.md)。
 
 這些限制不是缺點，而是用來降低維護面與避免責任失控的 guardrails。
 

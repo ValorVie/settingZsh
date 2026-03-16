@@ -1,32 +1,51 @@
 # valor-ssh-key
 
-這是一個 `custom private repo` 範本，只示範 SSH 私有資料的 repo 結構，不示範公開 baseline，也不包含真正的私鑰。
+這是一個 `custom private repo` 範本，只示範 SSH 私有資料的 repo 結構，不示範公開 baseline，也不包含真正私鑰。
 
 ## 目標
 
-- 只管理 `.ssh/**`
+- 只管理 private SSH material
 - 不接管 `~/.ssh/config` 主檔
-- 只補 `90-private.conf` 與 key files
-- 保持和 public baseline 的 `config + config.d` 模型相容
+- 分離 `shared`、`shared-keys`、機器專屬 `config/keys/custom-paths`
+- 以 `SOPS + age` 管理密文與 recipient
 
 ## 建議結構
 
 ```text
 .
-└── .ssh/
+├── .sops.yaml.example
+├── shared/
+│   └── config.d/
+│       └── 10-common-private.conf
+├── shared-keys/
+│   └── keys/
+│       └── README.md
+├── macmini/
+│   ├── config.d/
+│   │   └── 90-private.conf
+│   ├── keys/
+│   │   └── .keep
+│   └── custom-paths/
+│       └── sympasoft-macmini-ssh/
+│           └── .keep
+└── valorpc/
     ├── config.d/
     │   └── 90-private.conf
-    ├── id_ed25519.example
-    └── id_ed25519.pub.example
+    ├── keys/
+    │   └── .keep
+    └── custom-paths/
+        └── windows-imported/
+            └── .keep
 ```
 
 ## 你應該怎麼用這個範本
 
 1. 建立你自己的 private repo
 2. 複製這個目錄內容到新 repo
-3. 把 `id_ed25519.example` / `id_ed25519.pub.example` 換成你真正要用的檔名
-4. 編輯 `.ssh/config.d/90-private.conf`
-5. 用你自己的安全流程交付到目標機器
+3. 填入 machine-specific `config.d/90-private.conf`
+4. 將 private keys 依 `standard path` 或 `custom-paths` 分類
+5. 套用 `.sops.yaml` 規則後再 push
+6. 用你自己的安全流程交付到目標機器
 
 ## 你不應該放進這個 repo 的東西
 
@@ -37,14 +56,23 @@
 - editor 設定
 - 其他和 SSH 無關的 secrets
 
-## 範例 `90-private.conf`
+## 路徑模型
 
-這個 repo 已內建一個可改寫的示範檔：
+- `standard path`：`~/.ssh/<key>`
+- `custom-paths`：例如 `~/.ssh/config/sympasoft-macmini-ssh/<key>`
 
-- `.ssh/config.d/90-private.conf`
+## `shared-keys` 說明
+
+`shared-keys` 是顯式保留給例外情境的共享 key 區，預設應為空或只留 README。
+
+## 範例設定檔
+
+- `shared/config.d/10-common-private.conf`
+- `macmini/config.d/90-private.conf`
+- `valorpc/config.d/90-private.conf`
 
 ## 安全提醒
 
 - 這個範本故意不附真正私鑰
-- 若你要把私鑰放進 private repo，請至少確保 repo 本身是 private，並考慮額外加密
-- 如果你不想把私鑰直接放 repo，這個範本也可以只放 `90-private.conf`，key file 改由其他流程提供
+- private repo 請至少使用 `SOPS + age`
+- 建議保留 `owner` + `recovery` 兩組 recipient

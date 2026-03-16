@@ -4,6 +4,8 @@
 
 如果是新機器，直接看 [README.md](/Users/arlen/Documents/syncthing/backup/server/Code/settingZsh/.worktrees/settingzsh-chezmoi/README.md) 的 `fresh install` 流程即可。
 
+這份文件只管 public baseline adoption，不處理 runtime secret 注入；SSH 私有檔案加密流程請看 [sops-age.md](/Users/arlen/Documents/syncthing/backup/server/Code/settingZsh/.worktrees/settingzsh-chezmoi/docs/secrets/sops-age.md)。
+
 ## 核心原則
 
 - 不直接拿 `chezmoi init --apply` 套在陌生既有 shell 上
@@ -122,3 +124,12 @@ uv run --directory lib python -m settingzsh.cli migrate
 uv run --directory lib python -m settingzsh.cli reconcile
 uv run --directory lib python -m settingzsh.cli legacy-import
 ```
+
+## 與 custom private SSH repo 的關係
+
+adoption flow 只處理 public baseline 與 `~/.zshrc` 導入安全，不會自動抓取或部署你的 `custom private repo`。建議順序：
+
+1. 完成 `preflight` / `adopt`，確保 shell 導入安全
+2. 套用 public baseline
+3. 依你的安全流程部署 private SSH repo
+4. 用 `SOPS + age` 管理 private repo 的密文、recipient、rotation

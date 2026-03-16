@@ -28,6 +28,9 @@ def test_readme_mentions_bootstrap_doctor_migrate_and_private_repo() -> None:
     assert "docs/adoption-guide.md" in readme
     assert "keepassxc-cli" in readme
     assert "gopass" in readme
+    assert "SOPS + age" in readme
+    assert "docs/secrets/sops-age.md" in readme
+    assert "shared-keys" in readme
 
 
 def test_architecture_doc_explains_dotfiles_chezmoi_and_project_layers() -> None:
@@ -44,6 +47,10 @@ def test_architecture_doc_explains_dotfiles_chezmoi_and_project_layers() -> None
     assert "modify_dot_zshrc" in architecture
     assert "run_*" in architecture
     assert "nvim / vim baseline" in architecture
+    assert "SOPS + age" in architecture
+    assert "shared-keys" in architecture
+    assert "standard path" in architecture
+    assert "custom managed path" in architecture
 
 
 def test_legacy_docs_are_clearly_marked_and_redirect_to_current_flow() -> None:
@@ -71,6 +78,9 @@ def test_adoption_and_secret_guides_exist_and_describe_scope() -> None:
     gopass = (_PROJECT_ROOT / "docs" / "secrets" / "gopass.md").read_text(
         encoding="utf-8"
     )
+    sops_age = (_PROJECT_ROOT / "docs" / "secrets" / "sops-age.md").read_text(
+        encoding="utf-8"
+    )
 
     assert "preflight" in adoption
     assert "legacy import" in adoption
@@ -79,3 +89,7 @@ def test_adoption_and_secret_guides_exist_and_describe_scope() -> None:
     assert "runtime secret" in keepassxc
     assert "server file secret" in gopass
     assert "gopass init" in gopass
+    assert "owner" in sops_age
+    assert "recovery" in sops_age
+    assert "updatekeys" in sops_age
+    assert "rotate" in sops_age
