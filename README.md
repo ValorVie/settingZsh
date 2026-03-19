@@ -176,8 +176,8 @@ exec zsh
 ### 我想把 SSH 私有設定接上去
 
 1. 先確認 public baseline 已建立 `~/.ssh/config`
-2. 準備好 `custom private repo`
-3. 依你的安全流程 materialize `config.d/*.conf` 與 key files
+2. 準備好 `custom private repo`（結構參考 [`examples/valor-ssh-key/`](examples/valor-ssh-key/README.md)）
+3. 在目標機器上 clone、解密、複製到 `~/.ssh/`（逐步指令見 example README 的「部署到目標機器」）
 4. 跑 `ssh -G <host>` 檢查結果
 
 ## preflight 結果怎麼看
@@ -449,9 +449,8 @@ custom-private-repo/
 
 1. 先套用 public baseline
 2. 確認 `~/.ssh/config` 與 `~/.ssh/config.d/` 已存在
-3. 依你的安全流程部署 `custom private repo`
-4. 只把 private repo 的 `.ssh/**` 帶進目標機器
-5. 確認 `~/.ssh/config.d/90-private.conf` 與 key file 權限正確
+3. 在目標機器上 clone 你的 custom private repo，用 SOPS 解密後複製到 `~/.ssh/`（詳見 [`examples/valor-ssh-key/README.md`](examples/valor-ssh-key/README.md) 的「部署到目標機器」段落）
+4. 確認 `~/.ssh/config.d/90-private.conf` 與 key file 權限正確（私鑰 600）
 
 > 目前這個 public repo 沒有自動拉取 secret repo；這是刻意的。SSH secrets 的運送方式交給你的 `custom private repo` 與安全流程決定。若要把 private repo push 到遠端，建議先完成 `SOPS + age` 加密（見 `docs/secrets/sops-age.md`）。
 
@@ -477,11 +476,13 @@ chezmoi init --apply <public-repo>
 - 建立 `owner` + `recovery` recipients
 - 確認 repo 內只存密文
 
-4. materialize 到目標機器
+4. 部署到目標機器
 
-- `~/.ssh/config.d/*.conf`
-- `~/.ssh/<key>`
-- 或 custom managed path
+在目標機器上 clone private repo、解密、複製到 `~/.ssh/`。完整的逐步指令請見 [`examples/valor-ssh-key/README.md`](examples/valor-ssh-key/README.md) 的「部署到目標機器」段落，最終結果應該是：
+
+- `~/.ssh/config.d/*.conf` — private host 設定
+- `~/.ssh/<key>` — 解密後的私鑰（權限 600）
+- 或 custom managed path（如 `~/.ssh/config/sympasoft-macmini-ssh/`）
 
 5. 驗證
 
