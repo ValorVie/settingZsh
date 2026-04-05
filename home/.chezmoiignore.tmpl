@@ -3,10 +3,12 @@
 10-install-base-packages.ps1
 20-install-fonts.ps1
 30-install-editor.ps1
+40-install-private-ssh.ps1
 {{- end }}
 {{- if eq .chezmoi.os "windows" }}
 10-install-base-packages.sh
 15-install-zinit.sh
 20-install-fonts.sh
 30-install-editor.sh
+40-install-private-ssh.sh
 {{- end }}

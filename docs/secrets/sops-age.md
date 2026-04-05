@@ -18,7 +18,7 @@
 - `standard path`
   - `~/.ssh/<key>`
 - `custom managed path`
-  - 例如 `~/.ssh/config/sympasoft-macmini-ssh/<key>`
+  - 例如 `~/.ssh/custom-paths/sympasoft-macmini-ssh/<key>`
 
 兩種路徑都可加密後進 private repo，但需要在結構上分開管理。
 

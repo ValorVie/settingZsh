@@ -195,8 +195,10 @@ exec zsh
 
 1. 先確認 public baseline 已建立 `~/.ssh/config`
 2. 準備好 `custom private repo`（結構參考 [`examples/valor-ssh-key/`](examples/valor-ssh-key/README.md)）
-3. 在目標機器上 clone、解密、複製到 `~/.ssh/`（逐步指令見 example README 的「部署到目標機器」）
-4. 跑 `ssh -G <host>` 檢查結果
+3. 在 `~/.config/chezmoi/chezmoi.toml` 開啟 `private_ssh_overlay` 並填入 `private_ssh_overlay_repo`
+4. 若 repo 內是 `SOPS + age` 密文，先準備 `sops` 與 `SOPS_AGE_KEY_FILE`
+5. 跑 `chezmoi apply` 或 `chezmoi update`
+6. 跑 `ssh -G <host>` 檢查結果
 
 ## preflight 結果怎麼看
 
@@ -247,7 +249,7 @@ uv run --directory lib python -m settingzsh.cli preflight
 ### 預設不會做的事
 
 - 不自動安裝 editor 工具
-- 不自動佈署 SSH 私鑰
+- 不自動佈署 SSH 私鑰，除非你明確開啟 `private_ssh_overlay`
 - 不接管整份 `~/.zshrc`
 - 不同步 `known_hosts`
 - 不為 existing machine 自動清理舊 `.zshrc`
@@ -267,12 +269,23 @@ install_fonts = true
 platform_profile = "auto"
 ```
 
+private overlay external 定義放在 `home/.chezmoiexternal.toml.tmpl`。
+
 目前真正會影響安裝行為的主要是：
 
 - `feature_editor`
 - `install_fonts`
+- `private_ssh_overlay`
+- `private_ssh_overlay_repo`
+- `platform_profile`
 
-`private_ssh_overlay`、`private_ssh_overlay_repo` 與 `platform_profile` 目前先保留給後續 private overlay / profile 選擇流程，不代表 public repo 已自動接好 secret repo。
+另外可用的環境變數覆蓋有：
+
+- `SETTINGZSH_FEATURE_EDITOR`
+- `SETTINGZSH_INSTALL_FONTS`
+- `SETTINGZSH_PRIVATE_SSH_OVERLAY`
+- `SETTINGZSH_PLATFORM_PROFILE`
+- `SETTINGZSH_PRIVATE_SSH_OVERLAY_PROFILE`
 
 若你要在本機覆蓋預設值，編輯 `~/.config/chezmoi/chezmoi.toml`：
 
@@ -287,6 +300,40 @@ install_fonts = true
 ```bash
 chezmoi apply
 ```
+
+### 啟用 private SSH overlay
+
+如果你要讓 public baseline 在第二階段自動拉取並落地 SSH private repo，先在本機 `~/.config/chezmoi/chezmoi.toml` 設定：
+
+```toml
+[data]
+private_ssh_overlay = true
+private_ssh_overlay_repo = "git@github.com:<you>/<your-private-repo>.git"
+platform_profile = "auto"
+```
+
+再執行：
+
+```bash
+chezmoi apply
+```
+
+行為如下：
+
+- external checkout 會落在 `~/.local/share/settingzsh/private-ssh-overlay`
+- `shared/config.d/` 會 materialize 到 `~/.ssh/config.d/`
+- `shared-keys/keys/` 與 `<profile>/keys/` 會 materialize 到 `~/.ssh/`
+- `<profile>/custom-paths/` 會 materialize 到 `~/.ssh/custom-paths/`
+- `platform_profile = "auto"` 會用目前機器的 short hostname；若要覆蓋，可用 `SETTINGZSH_PLATFORM_PROFILE` 或 `SETTINGZSH_PRIVATE_SSH_OVERLAY_PROFILE`
+
+若 private repo 內是 `SOPS + age` 密文，目標機器上要先有 `sops`，並提供可用的 age private key，例如：
+
+```bash
+export SOPS_AGE_KEY_FILE="$HOME/.config/sops/age/owner.txt"
+chezmoi apply
+```
+
+若你不想走自動 overlay，仍可維持手動 clone / decrypt / copy 流程；public baseline 不會強制要求這個功能。
 
 ### 啟用 editor 環境
 
@@ -358,6 +405,19 @@ Linux 目前採用 non-interactive sudo 檢查，不會因為 `chezmoi apply` �
 - Windows：安裝到 `%LOCALAPPDATA%\\Microsoft\\Windows\\Fonts`
 
 安裝後若終端機字型沒切換，請手動把終端機字型改成 `Maple Mono NL NF CN`。
+
+若你要暫時跳過字型安裝，可用任一種方式：
+
+```toml
+[data]
+install_fonts = false
+```
+
+或：
+
+```bash
+SETTINGZSH_INSTALL_FONTS=false chezmoi apply
+```
 
 ## Shell / Profile 模型
 
@@ -463,20 +523,21 @@ custom-private-repo/
 路徑模型：
 
 - `standard path`：`~/.ssh/<key>`
-- `custom managed path`：例如 `~/.ssh/config/sympasoft-macmini-ssh/<key>`
+- `custom managed path`：例如 `~/.ssh/custom-paths/sympasoft-macmini-ssh/<key>`
 
 ### 建議流程
 
 1. 先套用 public baseline
 2. 確認 `~/.ssh/config` 與 `~/.ssh/config.d/` 已存在
-3. 在目標機器上 clone 你的 custom private repo，用 SOPS 解密後複製到 `~/.ssh/`（詳見 [`examples/valor-ssh-key/README.md`](examples/valor-ssh-key/README.md) 的「部署到目標機器」段落）
-4. 確認 `~/.ssh/config.d/90-private.conf` 與 key file 權限正確（私鑰 600）
+3. 建議用 `private_ssh_overlay = true` + `private_ssh_overlay_repo` 讓 `chezmoi apply` 自動拉取並 materialize
+4. 若你不想自動拉取，再走手動 clone / decrypt / copy 流程
+5. 確認 `~/.ssh/config.d/90-private.conf` 與 key file 權限正確（私鑰 600）
 
-> 目前這個 public repo 沒有自動拉取 secret repo；這是刻意的。SSH secrets 的運送方式交給你的 `custom private repo` 與安全流程決定。若要把 private repo push 到遠端，建議先完成 `SOPS + age` 加密（見 `docs/secrets/sops-age.md`）。
+> 若要用自動 overlay，目標機器必須能 `git clone` 你的 private repo。若檔案是 `SOPS + age` 密文，還必須先準備 `sops` 與 age private key。若不符合這兩個前提，就維持手動流程。
 
 ### custom private repo 最小接線流程
 
-這是最小可用流程，不含自動化抓取：
+這是最小可用流程，先列自動模式，再列手動 fallback：
 
 1. public baseline 先完成
 
@@ -491,19 +552,34 @@ chezmoi init --apply https://github.com/ValorVie/settingZsh.git
 - 至少要有 machine-specific `config.d/90-private.conf`
 - key 依 `standard path` / `custom-paths` 分類
 
-3. 若 private repo 會進版控，先做 `SOPS + age`
+3. 自動模式：把 overlay data 接到 chezmoi
 
-- 設定 `.sops.yaml`
-- 建立 `owner` + `recovery` recipients
-- 確認 repo 內只存密文
+```toml
+[data]
+private_ssh_overlay = true
+private_ssh_overlay_repo = "git@github.com:<you>/<your-private-repo>.git"
+platform_profile = "auto"
+```
 
-4. 部署到目標機器
+若 private repo 內是密文，再先準備：
+
+```bash
+export SOPS_AGE_KEY_FILE="$HOME/.config/sops/age/owner.txt"
+```
+
+然後：
+
+```bash
+chezmoi apply
+```
+
+4. 手動 fallback：若不走自動 overlay，再手動 clone / decrypt / copy
 
 在目標機器上 clone private repo、解密、複製到 `~/.ssh/`。完整的逐步指令請見 [`examples/valor-ssh-key/README.md`](examples/valor-ssh-key/README.md) 的「部署到目標機器」段落，最終結果應該是：
 
 - `~/.ssh/config.d/*.conf` — private host 設定
 - `~/.ssh/<key>` — 解密後的私鑰（權限 600）
-- 或 custom managed path（如 `~/.ssh/config/sympasoft-macmini-ssh/`）
+- 或 custom managed path（如 `~/.ssh/custom-paths/sympasoft-macmini-ssh/`）
 
 5. 驗證
 
@@ -601,6 +677,7 @@ uv run --directory lib python -m settingzsh.cli legacy-import
 ├── .chezmoiroot
 ├── home/
 │   ├── .chezmoi.toml.tmpl
+│   ├── .chezmoiexternal.toml.tmpl
 │   ├── .chezmoiignore.tmpl
 │   ├── .chezmoidata/
 │   ├── modify_dot_zshrc
@@ -627,6 +704,9 @@ bash tests/chezmoi/test_task1_scaffold.sh
 bash tests/chezmoi/test_source_state.sh
 bash tests/chezmoi/test_zsh_baseline.sh
 bash tests/chezmoi/test_scripts_presence.sh
+bash tests/chezmoi/test_fonts_feature_gating.sh
+bash tests/chezmoi/test_ssh_overlay.sh
+bash tests/chezmoi/test_apply_smoke.sh
 bash tests/chezmoi/test_linux_fallback.sh
 uv run pytest -q tests/test_config_merge.py tests/test_settingzsh_*.py
 ```
@@ -687,6 +767,7 @@ ssh -G <host>
 - `feature_editor = true`
 - `chezmoi apply` 已重跑
 - Linux 若無 sudo，是否已走 fallback 安裝路徑
+- 若是字型沒裝，檢查是否把 `install_fonts` 關掉了
 
 更細節的 editor 行為請看 [docs/editor-guide.md](/Users/arlen/Documents/syncthing/backup/server/Code/settingZsh/.worktrees/settingzsh-chezmoi/docs/editor-guide.md)。
 
@@ -694,5 +775,5 @@ ssh -G <host>
 
 - Windows runtime 驗證需要 `pwsh`
 - Linux 無 sudo fallback 仍依賴外網下載 release binary
-- `custom private repo` 目前不由 public repo 自動拉取
+- 自動 private overlay 依賴 private repo 可被 git clone；若內容是密文，還需要 `sops` 與 age key
 - 遷移期內 legacy `setup*.sh` / `update*.sh` 仍存在，但新安裝應以 `chezmoi` 為主

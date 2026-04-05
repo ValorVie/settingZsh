@@ -51,7 +51,30 @@
 
 ### 部署到目標機器（每台機器做一次）
 
-公開的 chezmoi baseline **不會**自動拉取或解密 private repo，以下步驟需手動執行：
+若你想讓 public baseline 在第二階段自動拉取這個 private repo，可在目標機器的 `~/.config/chezmoi/chezmoi.toml` 加上：
+
+```toml
+[data]
+private_ssh_overlay = true
+private_ssh_overlay_repo = "git@github.com:<you>/<your-private-repo>.git"
+platform_profile = "auto"
+```
+
+若 repo 內是 `SOPS + age` 密文，還要先準備：
+
+```bash
+export SOPS_AGE_KEY_FILE=~/.config/sops/age/owner.txt
+```
+
+然後直接：
+
+```bash
+chezmoi apply
+```
+
+這樣 `shared/config.d/`、`shared-keys/keys/`、`<machine>/config.d/`、`<machine>/keys/`、`<machine>/custom-paths/` 就會由 public baseline 自動 materialize 到 `~/.ssh/` 與 `~/.ssh/custom-paths/`。
+
+若你不想用自動 overlay，再走下面的手動流程。
 
 ```bash
 # 0. 先把 public baseline 套好
@@ -84,7 +107,8 @@ cp macmini/config.d/90-private.conf ~/.ssh/config.d/
 cp shared/config.d/10-common-private.conf ~/.ssh/config.d/
 
 # 7. 部署 custom-paths（如有）
-cp -r macmini/custom-paths/sympasoft-macmini-ssh ~/.ssh/config/
+mkdir -p ~/.ssh/custom-paths
+cp -r macmini/custom-paths/sympasoft-macmini-ssh ~/.ssh/custom-paths/
 
 # 8. 清理
 rm -rf ~/tmp/ssh-private
@@ -107,7 +131,7 @@ ssh -T git@github.com   # 或其他你設定的 Host
 ## 路徑模型
 
 - `standard path`：`~/.ssh/<key>`
-- `custom-paths`：例如 `~/.ssh/config/sympasoft-macmini-ssh/<key>`
+- `custom-paths`：例如 `~/.ssh/custom-paths/sympasoft-macmini-ssh/<key>`
 
 ## `shared-keys` 說明
 
@@ -135,7 +159,7 @@ macmini/
 
 部署到目標機器時，`keys/` 裡的檔案會放到 `IdentityFile` 指定的路徑（通常是 `~/.ssh/`）。
 
-若私鑰不在 standard path 而是放在自訂路徑（如 `~/.ssh/config/sympasoft-macmini-ssh/`），則改放到 `custom-paths/` 對應的子目錄裡。
+若私鑰不在 standard path 而是放在自訂路徑（如 `~/.ssh/custom-paths/sympasoft-macmini-ssh/`），則改放到 `custom-paths/` 對應的子目錄裡。
 
 > **重要**：`keys/` 裡的私鑰在 `git add` 之前必須先用 SOPS 加密（見下方「SOPS + age 使用方式」步驟 4）。絕對不要提交明文私鑰。
 

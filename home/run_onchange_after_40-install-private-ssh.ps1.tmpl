@@ -1,0 +1,147 @@
+{{- if eq .chezmoi.os "windows" -}}
+Set-StrictMode -Version Latest
+$ErrorActionPreference = "Stop"
+
+$isWindowsHost = if ($PSVersionTable.PSVersion.Major -ge 6) {
+    $IsWindows
+} else {
+    $env:OS -eq "Windows_NT"
+}
+
+if (-not $isWindowsHost) {
+    Write-Host "[settingzsh] non-Windows host, skip windows private ssh overlay script"
+    exit 0
+}
+
+$overlayEnabledDefault = "{{ if (get . "private_ssh_overlay") }}true{{ else }}false{{ end }}"
+$overlayEnabled = if ($env:SETTINGZSH_PRIVATE_SSH_OVERLAY) { $env:SETTINGZSH_PRIVATE_SSH_OVERLAY } else { $overlayEnabledDefault }
+$overlayRepo = "{{ get . "private_ssh_overlay_repo" }}"
+$profileDefault = "{{ get . "platform_profile" }}"
+$profileValue = if ($env:SETTINGZSH_PRIVATE_SSH_OVERLAY_PROFILE) {
+    $env:SETTINGZSH_PRIVATE_SSH_OVERLAY_PROFILE
+} elseif ($env:SETTINGZSH_PLATFORM_PROFILE) {
+    $env:SETTINGZSH_PLATFORM_PROFILE
+} else {
+    $profileDefault
+}
+$overlayDir = Join-Path $HOME ".local\share\settingzsh\private-ssh-overlay"
+# {{- if and (get . "private_ssh_overlay") (get . "private_ssh_overlay_repo") }} overlay-head={{- if (stat (joinPath .chezmoi.homeDir ".local" "share" "settingzsh" "private-ssh-overlay")) }}{{ output "git" "-C" (joinPath .chezmoi.homeDir ".local" "share" "settingzsh" "private-ssh-overlay") "rev-parse" "HEAD" | trim }}{{ else }}initial{{ end }}{{- end }}
+
+function Test-Truthy {
+    param([string]$Value)
+    return $Value -match '^(1|true|TRUE|yes|YES|on|ON)$'
+}
+
+function Resolve-Profile {
+    if ($profileValue -and $profileValue -ne "auto") {
+        return $profileValue
+    }
+    if ($env:COMPUTERNAME) {
+        return $env:COMPUTERNAME.ToLowerInvariant()
+    }
+    return ""
+}
+
+function Copy-OrDecryptFile {
+    param(
+        [string]$SourcePath,
+        [string]$DestinationPath
+    )
+
+    $destinationDir = Split-Path -Parent $DestinationPath
+    New-Item -ItemType Directory -Path $destinationDir -Force | Out-Null
+
+    $decrypted = $false
+    if (Get-Command sops -ErrorAction SilentlyContinue) {
+        try {
+            $content = & sops decrypt $SourcePath 2>$null
+            if ($LASTEXITCODE -eq 0) {
+                Set-Content -Path $DestinationPath -Value $content -NoNewline
+                $decrypted = $true
+            }
+        } catch {
+        }
+    }
+
+    if (-not $decrypted) {
+        Copy-Item -Path $SourcePath -Destination $DestinationPath -Force
+    }
+}
+
+function Set-OverlayFileMode {
+    param([string]$Path)
+
+    if ($Path -like "*.pub") {
+        return
+    }
+
+    try {
+        icacls $Path /inheritance:r /grant:r "$($env:USERNAME):(R,W)" | Out-Null
+    } catch {
+    }
+}
+
+function Copy-OverlayTree {
+    param(
+        [string]$SourceRoot,
+        [string]$DestinationRoot
+    )
+
+    if (-not (Test-Path $SourceRoot)) {
+        return
+    }
+
+    Get-ChildItem -Path $SourceRoot -Directory -Recurse | ForEach-Object {
+        $relative = $_.FullName.Substring($SourceRoot.Length).TrimStart('\')
+        if ($relative) {
+            New-Item -ItemType Directory -Path (Join-Path $DestinationRoot $relative) -Force | Out-Null
+        }
+    }
+
+    Get-ChildItem -Path $SourceRoot -File -Recurse | Where-Object {
+        $_.Name -notin @(".keep", "README.md")
+    } | ForEach-Object {
+        $relative = $_.FullName.Substring($SourceRoot.Length).TrimStart('\')
+        $destination = Join-Path $DestinationRoot $relative
+        Copy-OrDecryptFile -SourcePath $_.FullName -DestinationPath $destination
+        Set-OverlayFileMode -Path $destination
+    }
+}
+
+if (-not (Test-Truthy $overlayEnabled)) {
+    Write-Host "[settingzsh] private ssh overlay disabled, skip overlay install script"
+    exit 0
+}
+
+if ([string]::IsNullOrWhiteSpace($overlayRepo)) {
+    Write-Host "[settingzsh] private ssh overlay repo unset, skip overlay install script"
+    exit 0
+}
+
+if (-not (Test-Path $overlayDir)) {
+    Write-Host "[settingzsh] private ssh overlay checkout not present: $overlayDir"
+    exit 0
+}
+
+$profileName = Resolve-Profile
+$sshDir = Join-Path $HOME ".ssh"
+$configDir = Join-Path $sshDir "config.d"
+$customPathsDir = Join-Path $sshDir "custom-paths"
+New-Item -ItemType Directory -Path $sshDir -Force | Out-Null
+New-Item -ItemType Directory -Path $configDir -Force | Out-Null
+New-Item -ItemType Directory -Path $customPathsDir -Force | Out-Null
+
+Copy-OverlayTree -SourceRoot (Join-Path $overlayDir "shared\config.d") -DestinationRoot $configDir
+Copy-OverlayTree -SourceRoot (Join-Path $overlayDir "shared-keys\keys") -DestinationRoot $sshDir
+
+$profileRoot = if ($profileName) { Join-Path $overlayDir $profileName } else { "" }
+if ($profileRoot -and (Test-Path $profileRoot)) {
+    Copy-OverlayTree -SourceRoot (Join-Path $profileRoot "config.d") -DestinationRoot $configDir
+    Copy-OverlayTree -SourceRoot (Join-Path $profileRoot "keys") -DestinationRoot $sshDir
+    Copy-OverlayTree -SourceRoot (Join-Path $profileRoot "custom-paths") -DestinationRoot $customPathsDir
+} else {
+    Write-Host "[settingzsh] private ssh overlay profile not found, shared overlay only: $profileName"
+}
+
+Write-Host "[settingzsh] private ssh overlay applied for profile: $profileName"
+{{- end -}}

@@ -199,6 +199,13 @@ repo 內提供了參考範本：
 
 README 裡統一稱呼這個概念為 `custom private repo`，不綁死 repo 名稱。
 
+若你把 `private_ssh_overlay = true` 與 `private_ssh_overlay_repo` 設進 `chezmoi` data，public baseline 會額外做兩件事：
+
+- 透過 `home/.chezmoiexternal.toml.tmpl` 把 private repo checkout 到 `~/.local/share/settingzsh/private-ssh-overlay`
+- 透過 `run_onchange_after_40-install-private-ssh.*` 把 shared 與 machine-specific SSH materialize 到 `~/.ssh/`
+
+也就是說，private repo 仍不是主系統，但可以成為受控的第二階段 feed。
+
 ### 3. Shell / profile runtime 結構
 
 #### macOS / Linux
@@ -263,12 +270,14 @@ PowerShell 採雙 profile target：
 
 ### 2. Feature gating
 
-目前至少有兩個重要 feature flag：
+目前至少有四個重要 data knobs：
 
 - `feature_editor`
 - `install_fonts`
+- `private_ssh_overlay`
+- `platform_profile`
 
-這代表安裝不是單一路徑，而是可以在「維持 baseline」的前提下，針對較重的功能選擇性啟用。
+這代表安裝不是單一路徑，而是可以在「維持 baseline」的前提下，針對較重或較私有的功能選擇性啟用。
 
 ### 3. Adoption guardrails 與舊版 `settingZsh` 遷移
 
@@ -328,11 +337,12 @@ PowerShell 採雙 profile target：
 
 這個 repo 刻意不做以下事情：
 
-- 不自動拉取 secret repo
 - 不同步 `known_hosts`
 - 不讓 private repo 變成第二套完整 dotfiles 系統
 - 不再回到整份 `.zshrc` merge 模型
 - 不把 runtime secret 注入納入這一輪 adoption guardrails
+
+補充：private repo 雖然現在可由 `private_ssh_overlay` 自動拉取，但這是明確 opt-in，而且仍受限於 `~/.ssh/**` 這個邊界。
 
 ## SSH 路徑模型與 `SOPS + age`
 
@@ -341,9 +351,9 @@ private SSH repo 的正式路徑模型分成兩種：
 - `standard path`
   - `~/.ssh/<key>`
 - `custom managed path`
-  - 例如 `~/.ssh/config/sympasoft-macmini-ssh/<key>`
+  - 例如 `~/.ssh/custom-paths/sympasoft-macmini-ssh/<key>`
 
-`SOPS + age` 的責任是管理 private repo 的密文與 recipients，不處理 runtime secret 注入。建議至少保留兩組 recipients：
+若使用自動 private overlay，script 會優先嘗試用 `sops decrypt` materialize 到 `~/.ssh/`；沒有 `sops` 或檔案本身不是密文時，才直接複製原檔。建議至少保留兩組 recipients：
 
 - `owner`
 - `recovery`

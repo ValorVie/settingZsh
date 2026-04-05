@@ -3,9 +3,16 @@
 set -euo pipefail
 
 OS="{{ .chezmoi.os }}"
+INSTALL_FONTS_DEFAULT="{{ if (get . "install_fonts") }}true{{ else }}false{{ end }}"
+INSTALL_FONTS="${SETTINGZSH_INSTALL_FONTS:-$INSTALL_FONTS_DEFAULT}"
 MAPLE_VERSION="v7.9"
 MAPLE_ARCHIVE="MapleMonoNL-NF-CN.zip"
 MAPLE_URL="https://github.com/subframe7536/maple-font/releases/download/${MAPLE_VERSION}/${MAPLE_ARCHIVE}"
+
+if [[ ! "$INSTALL_FONTS" =~ ^(1|true|TRUE|yes|YES|on|ON)$ ]]; then
+  echo "[settingzsh] fonts feature disabled, skip fonts install script"
+  exit 0
+fi
 
 tmp_dir="$(mktemp -d)"
 cleanup() {

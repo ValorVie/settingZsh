@@ -24,6 +24,7 @@ require_contains() {
 
 require_file ".chezmoiroot"
 require_file "home/.chezmoi.toml.tmpl"
+require_file "home/.chezmoiexternal.toml.tmpl"
 require_file "home/.chezmoidata/common.yaml"
 require_file "home/.chezmoidata/linux.yaml"
 require_file "home/.chezmoidata/macos.yaml"
@@ -41,7 +42,10 @@ if ! grep -Fxq "home" .chezmoiroot; then
 fi
 
 require_contains "home/.chezmoi.toml.tmpl" "feature_editor = false" "chezmoi baseline config missing feature_editor default"
+require_contains "home/.chezmoi.toml.tmpl" 'private_ssh_overlay = false' "chezmoi baseline config missing private ssh overlay default"
+require_contains "home/.chezmoi.toml.tmpl" 'install_fonts = true' "chezmoi baseline config missing install_fonts default"
 require_contains "home/.chezmoidata/common.yaml" "features:" "common chezmoidata missing features block"
+require_contains "home/.chezmoiexternal.toml.tmpl" "private-ssh-overlay" "chezmoiexternal template missing overlay target"
 require_contains "home/modify_dot_zshrc" ".config/settingzsh/init.zsh" "zsh bootstrap missing init source"
 require_contains "home/private_dot_ssh/config.tmpl" "Host *" "ssh main config missing Host *"
 require_contains "home/private_dot_ssh/config.tmpl" "Include ~/.ssh/config.d/*.conf" "ssh main config missing Include model"

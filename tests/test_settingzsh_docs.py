@@ -28,8 +28,11 @@ def test_readme_mentions_bootstrap_doctor_migrate_and_private_repo() -> None:
     assert "custom private repo" in readme
     assert "examples/valor-ssh-key" in readme
     assert 'private_ssh_overlay_repo = ""' in readme
+    assert "private_ssh_overlay = true" in readme
+    assert 'platform_profile = "auto"' in readme
     assert ".chezmoiroot" in readme
     assert "home/.chezmoi.toml.tmpl" in readme
+    assert "home/.chezmoiexternal.toml.tmpl" in readme
     assert "dot_config/settingzsh/powershell/" in readme
     assert "docs/adoption-guide.md" in readme
     assert "keepassxc-cli" in readme
@@ -42,6 +45,9 @@ def test_readme_mentions_bootstrap_doctor_migrate_and_private_repo() -> None:
     assert "custom private repo 最小接線流程" in readme
     assert "preflight 結果怎麼看" in readme
     assert "開啟或關閉 editor feature" in readme
+    assert "啟用 private SSH overlay" in readme
+    assert "SETTINGZSH_INSTALL_FONTS=false chezmoi apply" in readme
+    assert "~/.ssh/custom-paths" in readme
 
 
 def test_architecture_doc_explains_dotfiles_chezmoi_and_project_layers() -> None:
@@ -63,6 +69,9 @@ def test_architecture_doc_explains_dotfiles_chezmoi_and_project_layers() -> None
     assert "shared-keys" in architecture
     assert "standard path" in architecture
     assert "custom managed path" in architecture
+    assert ".chezmoiexternal.toml.tmpl" in architecture
+    assert "run_onchange_after_40-install-private-ssh" in architecture
+    assert "~/.ssh/custom-paths" in architecture
 
 
 def test_legacy_docs_are_clearly_marked_and_redirect_to_current_flow() -> None:

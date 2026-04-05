@@ -27,7 +27,7 @@
 | 既有 nvim 設定備份策略 | 三平台 setup scripts | editor script 內備份邏輯 | MUST | 既有 `~/.config/nvim` 時建立 `.bak` |
 | `.ssh/config` 主檔由 baseline 管理 | README 與現況規劃 | `home/private_dot_ssh/config.tmpl` | MUST | `ssh -G example` 可解析 |
 | `config + config.d` 分層 | 既有設計文件 | `config.tmpl` + `config.d/10-common.conf.tmpl` | MUST | `Include` 生效檢查 |
-| private SSH overlay 第二階段 | 遷移設計文件 | `.chezmoiexternal.toml.tmpl` + overlay script | MUST | private overlay 缺席/存在雙路徑驗證 |
+| private SSH overlay 第二階段 | 遷移設計文件 | `home/.chezmoiexternal.toml.tmpl` + `run_onchange_after_40-install-private-ssh.*` | MUST | `bash tests/chezmoi/test_ssh_overlay.sh` |
 | private overlay 缺席時 baseline 可獨立工作 | 使用者需求 | 兩階段流程 + 容錯 script | MUST | 只跑 Phase A 功能驗證 |
 | shell 狀態檢查能力（doctor 類） | `settingzsh.cli doctor` | 遷移期保留 CLI 或新增 smoke checks | SHOULD | `zsh -n` + config parse smoke |
 | update 可重跑且不破壞設定（idempotency） | 既有 update scripts | `chezmoi apply` + run script 設計 | MUST | 連跑兩次 diff 為空或預期 |

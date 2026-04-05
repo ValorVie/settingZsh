@@ -192,7 +192,7 @@ valor-ssh/
 
 對於確實需要放在其他位置的 key，使用明確的 custom-paths 模型，例如：
 
-- `~/.ssh/config/sympasoft-macmini-ssh/google_compute_engine`
+- `~/.ssh/custom-paths/sympasoft-macmini-ssh/google_compute_engine`
 - `~/.config/valor-ssh/keys/google_compute_engine`
 
 這類 key 仍由 private repo 管理，但不應與 standard path 混為一談。

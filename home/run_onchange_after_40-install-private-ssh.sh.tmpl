@@ -1,0 +1,114 @@
+{{- if ne .chezmoi.os "windows" -}}
+#!/usr/bin/env bash
+set -euo pipefail
+
+OVERLAY_ENABLED_DEFAULT="{{ if (get . "private_ssh_overlay") }}true{{ else }}false{{ end }}"
+OVERLAY_ENABLED="${SETTINGZSH_PRIVATE_SSH_OVERLAY:-$OVERLAY_ENABLED_DEFAULT}"
+OVERLAY_REPO="{{ get . "private_ssh_overlay_repo" }}"
+PROFILE_DEFAULT="{{ get . "platform_profile" }}"
+PROFILE_VALUE="${SETTINGZSH_PRIVATE_SSH_OVERLAY_PROFILE:-${SETTINGZSH_PLATFORM_PROFILE:-$PROFILE_DEFAULT}}"
+OVERLAY_DIR="$HOME/.local/share/settingzsh/private-ssh-overlay"
+# {{- if and (get . "private_ssh_overlay") (get . "private_ssh_overlay_repo") }} overlay-head={{- if (stat (joinPath .chezmoi.homeDir ".local" "share" "settingzsh" "private-ssh-overlay")) }}{{ output "git" "-C" (joinPath .chezmoi.homeDir ".local" "share" "settingzsh" "private-ssh-overlay") "rev-parse" "HEAD" | trim }}{{ else }}initial{{ end }}{{- end }}
+
+is_truthy() {
+  case "${1:-}" in
+    1|true|TRUE|yes|YES|on|ON) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+resolve_profile() {
+  local detected=""
+  if [ -n "$PROFILE_VALUE" ] && [ "$PROFILE_VALUE" != "auto" ]; then
+    printf '%s\n' "$PROFILE_VALUE"
+    return
+  fi
+
+  detected="${SETTINGZSH_HOSTNAME:-$(hostname -s 2>/dev/null || hostname 2>/dev/null || true)}"
+  detected="${detected%%.*}"
+  printf '%s\n' "$detected" | tr '[:upper:]' '[:lower:]'
+}
+
+copy_or_decrypt_file() {
+  local source_path="$1"
+  local dest_path="$2"
+  local temp_path=""
+
+  mkdir -p "$(dirname "$dest_path")"
+  temp_path="$(mktemp)"
+
+  if command -v sops >/dev/null 2>&1 && sops decrypt "$source_path" > "$temp_path" 2>/dev/null; then
+    mv "$temp_path" "$dest_path"
+  else
+    rm -f "$temp_path"
+    cp "$source_path" "$dest_path"
+  fi
+}
+
+set_file_mode() {
+  local path="$1"
+  case "$path" in
+    *.pub) chmod 644 "$path" ;;
+    *) chmod 600 "$path" ;;
+  esac
+}
+
+copy_tree() {
+  local source_root="$1"
+  local dest_root="$2"
+  local dir=""
+  local source_path=""
+  local rel_path=""
+  local dest_path=""
+
+  if [ ! -d "$source_root" ]; then
+    return
+  fi
+
+  while IFS= read -r -d '' dir; do
+    rel_path="${dir#$source_root/}"
+    mkdir -p "$dest_root/$rel_path"
+    chmod 700 "$dest_root/$rel_path"
+  done < <(find "$source_root" -mindepth 1 -type d -print0)
+
+  while IFS= read -r -d '' source_path; do
+    rel_path="${source_path#$source_root/}"
+    dest_path="$dest_root/$rel_path"
+    copy_or_decrypt_file "$source_path" "$dest_path"
+    set_file_mode "$dest_path"
+  done < <(find "$source_root" -type f ! -name '.keep' ! -name 'README.md' -print0)
+}
+
+if ! is_truthy "$OVERLAY_ENABLED"; then
+  echo "[settingzsh] private ssh overlay disabled, skip overlay install script"
+  exit 0
+fi
+
+if [ -z "$OVERLAY_REPO" ]; then
+  echo "[settingzsh] private ssh overlay repo unset, skip overlay install script"
+  exit 0
+fi
+
+if [ ! -d "$OVERLAY_DIR" ]; then
+  echo "[settingzsh] private ssh overlay checkout not present: $OVERLAY_DIR"
+  exit 0
+fi
+
+PROFILE_NAME="$(resolve_profile)"
+
+mkdir -p "$HOME/.ssh" "$HOME/.ssh/config.d" "$HOME/.ssh/custom-paths"
+chmod 700 "$HOME/.ssh" "$HOME/.ssh/config.d" "$HOME/.ssh/custom-paths"
+
+copy_tree "$OVERLAY_DIR/shared/config.d" "$HOME/.ssh/config.d"
+copy_tree "$OVERLAY_DIR/shared-keys/keys" "$HOME/.ssh"
+
+if [ -n "$PROFILE_NAME" ] && [ -d "$OVERLAY_DIR/$PROFILE_NAME" ]; then
+  copy_tree "$OVERLAY_DIR/$PROFILE_NAME/config.d" "$HOME/.ssh/config.d"
+  copy_tree "$OVERLAY_DIR/$PROFILE_NAME/keys" "$HOME/.ssh"
+  copy_tree "$OVERLAY_DIR/$PROFILE_NAME/custom-paths" "$HOME/.ssh/custom-paths"
+else
+  echo "[settingzsh] private ssh overlay profile not found, shared overlay only: ${PROFILE_NAME:-<empty>}"
+fi
+
+echo "[settingzsh] private ssh overlay applied for profile: ${PROFILE_NAME:-<empty>}"
+{{- end -}}

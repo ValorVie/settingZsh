@@ -1,0 +1,10 @@
+# settingZsh private ssh overlay externals
+# Target: .local/share/settingzsh/private-ssh-overlay
+{{- $overlayRepo := get . "private_ssh_overlay_repo" -}}
+{{- if and (get . "private_ssh_overlay") $overlayRepo }}
+[".local/share/settingzsh/private-ssh-overlay"]
+    type = "git-repo"
+    url = {{ $overlayRepo | quote }}
+    clone.args = ["--depth", "1"]
+    pull.args = ["--ff-only"]
+{{- end }}

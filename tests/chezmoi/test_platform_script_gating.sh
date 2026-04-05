@@ -45,7 +45,8 @@ require_contains() {
 for script in \
   home/run_once_before_10-install-base-packages.ps1.tmpl \
   home/run_once_before_20-install-fonts.ps1.tmpl \
-  home/run_onchange_after_30-install-editor.ps1.tmpl
+  home/run_onchange_after_30-install-editor.ps1.tmpl \
+  home/run_onchange_after_40-install-private-ssh.ps1.tmpl
 do
   require_first_line "$script" '{{- if eq .chezmoi.os "windows" -}}' "$script missing windows-only template gate"
   require_last_line "$script" '{{- end -}}' "$script missing closing template gate"
@@ -55,7 +56,8 @@ for script in \
   home/run_once_before_10-install-base-packages.sh.tmpl \
   home/run_once_before_15-install-zinit.sh.tmpl \
   home/run_once_before_20-install-fonts.sh.tmpl \
-  home/run_onchange_after_30-install-editor.sh.tmpl
+  home/run_onchange_after_30-install-editor.sh.tmpl \
+  home/run_onchange_after_40-install-private-ssh.sh.tmpl
 do
   require_first_line "$script" '{{- if ne .chezmoi.os "windows" -}}' "$script missing non-windows template gate"
   require_last_line "$script" '{{- end -}}' "$script missing closing template gate"
@@ -66,10 +68,12 @@ require_contains "home/.chezmoiignore.tmpl" '{{- if ne .chezmoi.os "windows" }}'
 require_contains "home/.chezmoiignore.tmpl" '10-install-base-packages.ps1' "home/.chezmoiignore.tmpl missing powershell base script ignore"
 require_contains "home/.chezmoiignore.tmpl" '20-install-fonts.ps1' "home/.chezmoiignore.tmpl missing powershell fonts script ignore"
 require_contains "home/.chezmoiignore.tmpl" '30-install-editor.ps1' "home/.chezmoiignore.tmpl missing powershell editor script ignore"
+require_contains "home/.chezmoiignore.tmpl" '40-install-private-ssh.ps1' "home/.chezmoiignore.tmpl missing powershell private ssh script ignore"
 require_contains "home/.chezmoiignore.tmpl" '{{- if eq .chezmoi.os "windows" }}' "home/.chezmoiignore.tmpl missing windows ignore gate"
 require_contains "home/.chezmoiignore.tmpl" '10-install-base-packages.sh' "home/.chezmoiignore.tmpl missing shell base script ignore"
 require_contains "home/.chezmoiignore.tmpl" '15-install-zinit.sh' "home/.chezmoiignore.tmpl missing shell zinit script ignore"
 require_contains "home/.chezmoiignore.tmpl" '20-install-fonts.sh' "home/.chezmoiignore.tmpl missing shell fonts script ignore"
 require_contains "home/.chezmoiignore.tmpl" '30-install-editor.sh' "home/.chezmoiignore.tmpl missing shell editor script ignore"
+require_contains "home/.chezmoiignore.tmpl" '40-install-private-ssh.sh' "home/.chezmoiignore.tmpl missing shell private ssh script ignore"
 
 echo "platform script gating checks: ok"
