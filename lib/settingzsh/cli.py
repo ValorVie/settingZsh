@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from settingzsh.adopt import run_adopt
+from settingzsh.deprecations import DEPRECATED_GUIDANCE
 from settingzsh.doctor import run_doctor
 from settingzsh.legacy_import import run_legacy_import
 from settingzsh.migrate import run_migrate
@@ -17,26 +18,6 @@ class CommandResult:
     status: str
     modified_files: list[str] = field(default_factory=list)
     issues: list[str] = field(default_factory=list)
-
-
-_DEPRECATED_GUIDANCE: dict[str, str] = {
-    "setup": (
-        "setup 已停用。請改用 `chezmoi init --apply`，"
-        "並在需要檢查既有 shell 時先跑 `preflight`，再視情況用 `adopt` 或 `legacy-import`。"
-    ),
-    "update": (
-        "update 已停用。請改用 `chezmoi update`，"
-        "並在既有 shell 上先用 `preflight`、`adopt` 或 `legacy-import` 收斂。"
-    ),
-    "reconcile": (
-        "reconcile 已停用。請改用 `chezmoi apply`，"
-        "並搭配 `preflight`、`adopt`、`legacy-import` 做 read-only 檢查與舊設定收斂。"
-    ),
-    "migrate": (
-        "migrate 已停用。請改用 `legacy-import`，"
-        "並先跑 `preflight` / `adopt` 檢查既有 shell 狀態。"
-    ),
-}
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -58,7 +39,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def _deprecated_command(command: str) -> CommandResult:
-    message = _DEPRECATED_GUIDANCE[command]
+    message = DEPRECATED_GUIDANCE[command]
     print(message, file=sys.stderr)
     return CommandResult(status="deprecated", issues=[message])
 

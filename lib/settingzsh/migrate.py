@@ -5,10 +5,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable
 
-
-_DEPRECATED_GUIDANCE = (
-    "migrate 已停用。請改用 `legacy-import`，並先跑 `preflight` / `adopt` 檢查既有 shell 狀態。"
-)
+from settingzsh.deprecations import DEPRECATED_GUIDANCE
 
 
 @dataclass(slots=True)
@@ -25,5 +22,6 @@ def run_migrate(
     validator: Callable[[Path], None] | None = None,
 ) -> MigrateResult:
     del target_home, validator
-    print(_DEPRECATED_GUIDANCE, file=sys.stderr)
-    return MigrateResult(status="deprecated", issues=[_DEPRECATED_GUIDANCE])
+    message = DEPRECATED_GUIDANCE["migrate"]
+    print(message, file=sys.stderr)
+    return MigrateResult(status="deprecated", issues=[message])
