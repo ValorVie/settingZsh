@@ -184,15 +184,19 @@ install_nvim_fallback() {
   tmp_dir="$(mktemp -d)"
   local archive_name
   local archive
+  local extract_dir_name
+  local extract_dir_path
   local url
 
   archive_name="$(select_arch_value "$NVIM_ARCHIVE_X86_64" "$NVIM_ARCHIVE_ARM64")"
   archive="$tmp_dir/$archive_name"
+  extract_dir_name="${archive_name%.tar.gz}"
+  extract_dir_path="$tmp_dir/$extract_dir_name"
   url="$(select_arch_value "$NVIM_URL_X86_64" "$NVIM_URL_ARM64")"
 
   if curl -fsSL "$url" -o "$archive" && tar xzf "$archive" -C "$tmp_dir"; then
     mkdir -p "$HOME/.local"
-    cp -R "$tmp_dir/${archive%.tar.gz}/." "$HOME/.local/"
+    cp -R "$extract_dir_path/." "$HOME/.local/"
   else
     echo "[settingzsh] neovim fallback install failed"
   fi
