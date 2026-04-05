@@ -1,0 +1,8 @@
+features:
+  editor: false
+  fonts: true
+  private_ssh_overlay: false
+
+overlay:
+  repo: ""
+  profile: "auto"

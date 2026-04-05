@@ -1,0 +1,17 @@
+artifacts:
+  ripgrep:
+    linux:
+      x86_64: "https://github.com/BurntSushi/ripgrep/releases/download/14.1.1/ripgrep-14.1.1-x86_64-unknown-linux-musl.tar.gz"
+      arm64: "https://github.com/BurntSushi/ripgrep/releases/download/14.1.1/ripgrep-14.1.1-aarch64-unknown-linux-musl.tar.gz"
+  fd:
+    linux:
+      x86_64: "https://github.com/sharkdp/fd/releases/download/v10.2.0/fd-v10.2.0-x86_64-unknown-linux-musl.tar.gz"
+      arm64: "https://github.com/sharkdp/fd/releases/download/v10.2.0/fd-v10.2.0-aarch64-unknown-linux-musl.tar.gz"
+  neovim:
+    linux:
+      x86_64: "https://github.com/neovim/neovim/releases/latest/download/nvim-linux-x86_64.tar.gz"
+      arm64: "https://github.com/neovim/neovim/releases/latest/download/nvim-linux-arm64.tar.gz"
+  lazygit:
+    linux:
+      x86_64: "https://github.com/jesseduffield/lazygit/releases/download/v0.44.1/lazygit_0.44.1_Linux_x86_64.tar.gz"
+      arm64: "https://github.com/jesseduffield/lazygit/releases/download/v0.44.1/lazygit_0.44.1_Linux_arm64.tar.gz"

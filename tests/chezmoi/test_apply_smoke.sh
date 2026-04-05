@@ -22,11 +22,14 @@ state_path="$tmp_root/state.boltdb"
 mkdir -p "$dest_home" "$cache_dir"
 
 cat > "$tmp_root/chezmoi.toml" <<'EOF'
-[data]
-feature_editor = false
-install_fonts = false
+[data.features]
+editor = false
+fonts = false
 private_ssh_overlay = false
-platform_profile = "auto"
+
+[data.overlay]
+profile = "auto"
+repo = ""
 EOF
 
 run_apply() {
