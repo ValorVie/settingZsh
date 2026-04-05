@@ -31,11 +31,18 @@ require_file "$EDITOR_SCRIPT"
 # Task 5 hard requirement: sudo checks must be non-interactive safe.
 require_contains "$BASE_SCRIPT" "sudo -n true" "base script missing non-interactive sudo check"
 require_contains "$EDITOR_SCRIPT" "sudo -n true" "editor script missing non-interactive sudo check"
+require_contains "$EDITOR_SCRIPT" "detect_arch()" "editor script missing detect_arch helper"
+require_contains "$EDITOR_SCRIPT" "x86_64|amd64" "editor script missing x86_64 amd64 arch mapping"
+require_contains "$EDITOR_SCRIPT" "aarch64|arm64" "editor script missing arm64 arch mapping"
 
 # Task 5 hard requirement: no-sudo path must include binary fallback for editor stack.
 require_contains "$EDITOR_SCRIPT" "BurntSushi/ripgrep" "editor script missing ripgrep binary fallback"
 require_contains "$EDITOR_SCRIPT" "sharkdp/fd" "editor script missing fd binary fallback"
 require_contains "$EDITOR_SCRIPT" "nvim-linux-x86_64.tar.gz" "editor script missing neovim binary fallback"
 require_contains "$EDITOR_SCRIPT" "jesseduffield/lazygit" "editor script missing lazygit binary fallback"
+require_contains "$EDITOR_SCRIPT" "RIPGREP_URL_ARM64" "editor script missing arm64 ripgrep url"
+require_contains "$EDITOR_SCRIPT" "FD_URL_ARM64" "editor script missing arm64 fd url"
+require_contains "$EDITOR_SCRIPT" "NVIM_URL_ARM64" "editor script missing arm64 neovim url"
+require_contains "$EDITOR_SCRIPT" "LAZYGIT_URL_ARM64" "editor script missing arm64 lazygit url"
 
 echo "task5 linux fallback checks: ok"

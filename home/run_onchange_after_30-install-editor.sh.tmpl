@@ -3,12 +3,47 @@
 set -euo pipefail
 
 OS="{{ .chezmoi.os }}"
-FEATURE_EDITOR_DEFAULT="{{ if (get . "feature_editor") }}true{{ else }}false{{ end }}"
+FEATURE_EDITOR_DEFAULT="{{ if (get (get . "features") "editor") }}true{{ else }}false{{ end }}"
 FEATURE_EDITOR="${SETTINGZSH_FEATURE_EDITOR:-$FEATURE_EDITOR_DEFAULT}"
 NVM_VERSION="v0.40.1"
 LAZYGIT_VERSION="0.44.1"
 RIPGREP_VERSION="14.1.1"
 FD_VERSION="10.2.0"
+RIPGREP_PACKAGE_X86_64="ripgrep-${RIPGREP_VERSION}-x86_64-unknown-linux-musl"
+RIPGREP_PACKAGE_ARM64="ripgrep-${RIPGREP_VERSION}-aarch64-unknown-linux-musl"
+RIPGREP_URL_X86_64="https://github.com/BurntSushi/ripgrep/releases/download/${RIPGREP_VERSION}/${RIPGREP_PACKAGE_X86_64}.tar.gz"
+RIPGREP_URL_ARM64="https://github.com/BurntSushi/ripgrep/releases/download/${RIPGREP_VERSION}/${RIPGREP_PACKAGE_ARM64}.tar.gz"
+FD_PACKAGE_X86_64="fd-v${FD_VERSION}-x86_64-unknown-linux-musl"
+FD_PACKAGE_ARM64="fd-v${FD_VERSION}-aarch64-unknown-linux-musl"
+FD_URL_X86_64="https://github.com/sharkdp/fd/releases/download/v${FD_VERSION}/${FD_PACKAGE_X86_64}.tar.gz"
+FD_URL_ARM64="https://github.com/sharkdp/fd/releases/download/v${FD_VERSION}/${FD_PACKAGE_ARM64}.tar.gz"
+NVIM_ARCHIVE_X86_64="nvim-linux-x86_64.tar.gz"
+NVIM_ARCHIVE_ARM64="nvim-linux-arm64.tar.gz"
+NVIM_URL_X86_64="https://github.com/neovim/neovim/releases/latest/download/${NVIM_ARCHIVE_X86_64}"
+NVIM_URL_ARM64="https://github.com/neovim/neovim/releases/latest/download/${NVIM_ARCHIVE_ARM64}"
+LAZYGIT_ARCHIVE_X86_64="lazygit_${LAZYGIT_VERSION}_Linux_x86_64.tar.gz"
+LAZYGIT_ARCHIVE_ARM64="lazygit_${LAZYGIT_VERSION}_Linux_arm64.tar.gz"
+LAZYGIT_URL_X86_64="https://github.com/jesseduffield/lazygit/releases/download/v${LAZYGIT_VERSION}/${LAZYGIT_ARCHIVE_X86_64}"
+LAZYGIT_URL_ARM64="https://github.com/jesseduffield/lazygit/releases/download/v${LAZYGIT_VERSION}/${LAZYGIT_ARCHIVE_ARM64}"
+
+detect_arch() {
+  case "$(uname -m)" in
+    x86_64|amd64) printf '%s\n' "x86_64" ;;
+    aarch64|arm64) printf '%s\n' "arm64" ;;
+    *) printf '%s\n' "x86_64" ;;
+  esac
+}
+
+select_arch_value() {
+  local x86_64_value="$1"
+  local arm64_value="$2"
+
+  case "$(detect_arch)" in
+    x86_64) printf '%s\n' "$x86_64_value" ;;
+    arm64) printf '%s\n' "$arm64_value" ;;
+    *) printf '%s\n' "$x86_64_value" ;;
+  esac
+}
 
 if [[ ! "$FEATURE_EDITOR" =~ ^(1|true|TRUE|yes|YES|on|ON)$ ]]; then
   echo "[settingzsh] editor feature disabled, skip editor install script"
@@ -96,8 +131,11 @@ install_rg_fallback() {
   local tmp_dir
   tmp_dir="$(mktemp -d)"
   local archive="$tmp_dir/ripgrep.tar.gz"
-  local package="ripgrep-${RIPGREP_VERSION}-x86_64-unknown-linux-musl"
-  local url="https://github.com/BurntSushi/ripgrep/releases/download/${RIPGREP_VERSION}/${package}.tar.gz"
+  local package
+  local url
+
+  package="$(select_arch_value "$RIPGREP_PACKAGE_X86_64" "$RIPGREP_PACKAGE_ARM64")"
+  url="$(select_arch_value "$RIPGREP_URL_X86_64" "$RIPGREP_URL_ARM64")"
 
   if curl -fsSL "$url" -o "$archive" && tar xzf "$archive" -C "$tmp_dir"; then
     install "$tmp_dir/$package/rg" "$HOME/.local/bin/rg"
@@ -119,8 +157,11 @@ install_fd_fallback() {
   local tmp_dir
   tmp_dir="$(mktemp -d)"
   local archive="$tmp_dir/fd.tar.gz"
-  local package="fd-v${FD_VERSION}-x86_64-unknown-linux-musl"
-  local url="https://github.com/sharkdp/fd/releases/download/v${FD_VERSION}/${package}.tar.gz"
+  local package
+  local url
+
+  package="$(select_arch_value "$FD_PACKAGE_X86_64" "$FD_PACKAGE_ARM64")"
+  url="$(select_arch_value "$FD_URL_X86_64" "$FD_URL_ARM64")"
 
   if curl -fsSL "$url" -o "$archive" && tar xzf "$archive" -C "$tmp_dir"; then
     install "$tmp_dir/$package/fd" "$HOME/.local/bin/fd"
@@ -141,12 +182,15 @@ install_nvim_fallback() {
 
   local tmp_dir
   tmp_dir="$(mktemp -d)"
-  local archive="$tmp_dir/nvim-linux-x86_64.tar.gz"
-  local url="https://github.com/neovim/neovim/releases/latest/download/nvim-linux-x86_64.tar.gz"
+  local archive
+  local url
+
+  archive="$(select_arch_value "$NVIM_ARCHIVE_X86_64" "$NVIM_ARCHIVE_ARM64")"
+  url="$(select_arch_value "$NVIM_URL_X86_64" "$NVIM_URL_ARM64")"
 
   if curl -fsSL "$url" -o "$archive" && tar xzf "$archive" -C "$tmp_dir"; then
     mkdir -p "$HOME/.local"
-    cp -R "$tmp_dir/nvim-linux-x86_64/." "$HOME/.local/"
+    cp -R "$tmp_dir/${archive%.tar.gz}/." "$HOME/.local/"
   else
     echo "[settingzsh] neovim fallback install failed"
   fi
@@ -165,7 +209,9 @@ install_lazygit_fallback() {
   local tmp_dir
   tmp_dir="$(mktemp -d)"
   local archive="$tmp_dir/lazygit.tar.gz"
-  local url="https://github.com/jesseduffield/lazygit/releases/download/v${LAZYGIT_VERSION}/lazygit_${LAZYGIT_VERSION}_Linux_x86_64.tar.gz"
+  local url
+
+  url="$(select_arch_value "$LAZYGIT_URL_X86_64" "$LAZYGIT_URL_ARM64")"
 
   if curl -fsSL "$url" -o "$archive" && tar xzf "$archive" -C "$tmp_dir" lazygit; then
     install "$tmp_dir/lazygit" "$HOME/.local/bin/lazygit"

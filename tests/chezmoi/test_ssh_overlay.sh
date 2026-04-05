@@ -90,12 +90,14 @@ write_config() {
   local overlay_enabled="$2"
 
   cat > "$config_path" <<EOF
-[data]
-feature_editor = false
-install_fonts = false
+[data.features]
+editor = false
+fonts = false
 private_ssh_overlay = $overlay_enabled
-private_ssh_overlay_repo = "$(printf '%s' "$private_repo" | sed 's/\\/\\\\/g')"
-platform_profile = "testhost"
+
+[data.overlay]
+repo = "$(printf '%s' "$private_repo" | sed 's/\\/\\\\/g')"
+profile = "testhost"
 EOF
 }
 

@@ -3,7 +3,7 @@
 set -euo pipefail
 
 OS="{{ .chezmoi.os }}"
-INSTALL_FONTS_DEFAULT="{{ if (get . "install_fonts") }}true{{ else }}false{{ end }}"
+INSTALL_FONTS_DEFAULT="{{ if (get (get . "features") "fonts") }}true{{ else }}false{{ end }}"
 INSTALL_FONTS="${SETTINGZSH_INSTALL_FONTS:-$INSTALL_FONTS_DEFAULT}"
 MAPLE_VERSION="v7.9"
 MAPLE_ARCHIVE="MapleMonoNL-NF-CN.zip"

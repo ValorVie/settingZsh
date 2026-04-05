@@ -21,13 +21,13 @@ cache_dir="$tmp_root/cache"
 mkdir -p "$dest_home" "$cache_dir" "$tmp_root/tmp"
 
 cat > "$tmp_root/false.toml" <<'EOF'
-[data]
-install_fonts = false
+[data.features]
+fonts = false
 EOF
 
 cat > "$tmp_root/true.toml" <<'EOF'
-[data]
-install_fonts = true
+[data.features]
+fonts = true
 EOF
 
 cat > "$tmp_root/curl" <<EOF
@@ -61,6 +61,10 @@ run_script_and_capture() {
 }
 
 render_script "$tmp_root/false.toml" "$tmp_root/fonts-disabled.sh"
+if ! rg -Fq 'INSTALL_FONTS_DEFAULT="false"' "$tmp_root/fonts-disabled.sh"; then
+  echo "fonts script did not render false default from nested config"
+  exit 1
+fi
 run_script_and_capture "$tmp_root/fonts-disabled.sh" "$tmp_root/fonts-disabled.log"
 
 if ! rg -Fq "fonts feature disabled" "$tmp_root/fonts-disabled.log"; then
@@ -73,6 +77,10 @@ if [ -f "$tmp_root/curl.log" ]; then
 fi
 
 render_script "$tmp_root/true.toml" "$tmp_root/fonts-env-disabled.sh"
+if ! rg -Fq 'INSTALL_FONTS_DEFAULT="true"' "$tmp_root/fonts-env-disabled.sh"; then
+  echo "fonts script did not render true default from nested config"
+  exit 1
+fi
 SETTINGZSH_INSTALL_FONTS=false run_script_and_capture \
   "$tmp_root/fonts-env-disabled.sh" \
   "$tmp_root/fonts-env-disabled.log"
