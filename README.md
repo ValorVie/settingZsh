@@ -232,6 +232,8 @@ uv run --directory lib python -m settingzsh.cli preflight
 - `zoxide`
 - Maple Mono 字型
 
+補充：`chezmoi init --apply` 會先安裝 Zinit 本體；預設 zsh plugins 會在下一次 interactive `zsh` 啟動時，由 `managed.d/10-base.zsh` 透過 Zinit 自動拉下。
+
 ### Windows
 
 - `~/Documents/PowerShell/Microsoft.PowerShell_profile.ps1`

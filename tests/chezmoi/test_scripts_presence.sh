@@ -23,6 +23,7 @@ require_contains() {
 }
 
 require_file "home/run_once_before_10-install-base-packages.sh.tmpl"
+require_file "home/run_once_before_15-install-zinit.sh.tmpl"
 require_file "home/run_once_before_20-install-fonts.sh.tmpl"
 require_file "home/run_onchange_after_30-install-editor.sh.tmpl"
 require_file "home/run_once_before_10-install-base-packages.ps1.tmpl"
@@ -31,6 +32,8 @@ require_file "home/run_onchange_after_30-install-editor.ps1.tmpl"
 
 require_contains "home/run_once_before_10-install-base-packages.sh.tmpl" "{{ .chezmoi.os }}" "unix base script missing chezmoi os routing"
 require_contains "home/run_once_before_10-install-base-packages.sh.tmpl" "astral.sh/uv/install.sh" "unix base script missing uv install path"
+require_contains "home/run_once_before_15-install-zinit.sh.tmpl" "zdharma-continuum/zinit" "unix zinit script missing zinit bootstrap"
+require_contains "home/run_once_before_15-install-zinit.sh.tmpl" "interactive zsh startup" "unix zinit script missing bootstrap hint"
 require_contains "home/run_once_before_20-install-fonts.sh.tmpl" "MapleMono" "unix fonts script missing Maple handling"
 require_contains "home/run_onchange_after_30-install-editor.sh.tmpl" "SETTINGZSH_FEATURE_EDITOR" "unix editor script missing feature guard"
 require_contains "home/run_onchange_after_30-install-editor.sh.tmpl" "nvim" "unix editor script missing nvim deployment path"

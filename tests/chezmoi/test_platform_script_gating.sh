@@ -53,6 +53,7 @@ done
 
 for script in \
   home/run_once_before_10-install-base-packages.sh.tmpl \
+  home/run_once_before_15-install-zinit.sh.tmpl \
   home/run_once_before_20-install-fonts.sh.tmpl \
   home/run_onchange_after_30-install-editor.sh.tmpl
 do
@@ -67,6 +68,7 @@ require_contains "home/.chezmoiignore.tmpl" '20-install-fonts.ps1' "home/.chezmo
 require_contains "home/.chezmoiignore.tmpl" '30-install-editor.ps1' "home/.chezmoiignore.tmpl missing powershell editor script ignore"
 require_contains "home/.chezmoiignore.tmpl" '{{- if eq .chezmoi.os "windows" }}' "home/.chezmoiignore.tmpl missing windows ignore gate"
 require_contains "home/.chezmoiignore.tmpl" '10-install-base-packages.sh' "home/.chezmoiignore.tmpl missing shell base script ignore"
+require_contains "home/.chezmoiignore.tmpl" '15-install-zinit.sh' "home/.chezmoiignore.tmpl missing shell zinit script ignore"
 require_contains "home/.chezmoiignore.tmpl" '20-install-fonts.sh' "home/.chezmoiignore.tmpl missing shell fonts script ignore"
 require_contains "home/.chezmoiignore.tmpl" '30-install-editor.sh' "home/.chezmoiignore.tmpl missing shell editor script ignore"
 
