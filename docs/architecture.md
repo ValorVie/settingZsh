@@ -9,13 +9,14 @@
 若你只想知道如何安裝與日常使用，請先看 `README.md`；若你要理解這個 repo 為什麼這樣切分，從這份文件開始比較合適。
 
 如果你想先看圖，再回來讀細節，先看 [architecture-diagram.md](./architecture-diagram.md)。
+如果你不熟這份文件裡的英文術語，先看 [terminology.md](./terminology.md)。
 
 ## 先講結論
 
 `settingZsh` 現在的角色不是「一套會接管整份 shell 設定的自訂安裝器」，而是：
 
 - 用 `chezmoi` 管理跨平台 dotfiles 與部署流程
-- 用 `public baseline + custom private repo` 處理公開設定與 SSH secrets 的責任切分
+- 用「公開基線設定（public baseline）+ 自訂私有 repo（custom private repo）」處理公開設定與 SSH secrets 的責任切分
 - 用 `SOPS + age` 管理 private SSH repo 的檔案加密與 recipient
 - 用少量專案邏輯補齊原生 dotfiles 工具通常不直接處理的部分
   - 平台工具安裝
@@ -54,21 +55,21 @@ dotfiles 工具通常擅長的是「檔案狀態管理」，不一定擅長處�
 
 `chezmoi` 可以把它想成「宣告式管理家目錄檔案的控制面」。它有幾個核心概念。
 
-### 1. Source state 與 target state
+### 1. 來源目錄與目標檔案
 
-- `source state`
+- `來源目錄（source state）`
   - 也就是 chezmoi 實際讀取的檔案結構與模板
-  - 這個 repo 透過 repo root 的 `.chezmoiroot` 把 source root 固定在 `home/`
+  - 這個 repo 透過 repo root 的 `.chezmoiroot` 把來源根目錄固定在 `home/`
   - 例如 `modify_dot_zshrc`
-- `target state`
+- `目標檔案（target state）`
   - 真正落在使用者家目錄裡的檔案
   - 例如 `~/.zshrc`
 
-`chezmoi apply` 做的事，就是把 source state 渲染並同步到 target state。對這個 repo 來說，`~/.zshrc` 已不再是單純 whole-file target，而是透過 `modify_` source state 只建立或插入 bootstrap。
+`chezmoi apply` 做的事，就是把來源目錄渲染並同步到目標檔案。對這個 repo 來說，`~/.zshrc` 已不再是單純整份覆蓋，而是透過 `modify_` 模板只建立或插入 bootstrap。
 
 ### 2. Template 與 data
 
-`chezmoi` 支援模板與資料注入，所以同一份 source state 可以根據平台或機器資料產生不同結果。
+`chezmoi` 支援模板與資料注入，所以同一份來源目錄可以根據平台或機器資料產生不同結果。
 
 例如：
 
@@ -82,14 +83,14 @@ dotfiles 工具通常擅長的是「檔案狀態管理」，不一定擅長處�
 - `home/.chezmoidata/`
 - 使用者本機的 `~/.config/chezmoi/chezmoi.toml`
 
-### 3. Target naming 規則
+### 3. 目標路徑命名規則
 
 `chezmoi` 不是直接把 repo 內檔名原樣複製，而是透過命名規則描述目標檔案型態，例如：
 
 - `modify_dot_zshrc` -> `~/.zshrc`（modify-based bootstrap ownership）
 - `private_dot_ssh/config.tmpl` -> `~/.ssh/config`
 
-這讓同一份 source state 可以同時表達：
+這讓同一份來源目錄可以同時表達：
 
 - 目標路徑
 - 是否為私密檔案
@@ -126,33 +127,33 @@ dotfiles 工具通常擅長的是「檔案狀態管理」，不一定擅長處�
 ```text
 repo root
 ├── .chezmoiroot -> home
-├── home/                     # chezmoi source state
-│   ├── public baseline
+├── home/                     # chezmoi 來源目錄
+│   ├── public baseline（公開基線設定）
 │   │   ├── shell / profile templates
 │   │   ├── .ssh/config 主檔與共用 config.d
 │   │   ├── run_* 安裝腳本
 │   │   ├── nvim / vim baseline
 │   │   └── machine data / feature flags
-│   └── adoption target templates
+│   └── adoption 相關模板
 └── adoption guardrails
     ├── preflight / adopt / doctor
     └── migrate / reconcile / legacy import draft
 
-apply 後的 target state
+apply 後的目標檔案
 ├── ~/.zshrc
 ├── ~/.config/settingzsh/managed.d/*.zsh
 ├── PowerShell profiles
 ├── ~/.ssh/config
 └── 其他工具與字型
 
-外部 overlay
+外部覆蓋層
 └── custom private repo
     └── 只負責 ~/.ssh/**
 ```
 
 ### 1. Public baseline
 
-public baseline 是這個專案的唯一主入口與主要 source of truth，負責：
+public baseline 是這個專案的唯一主入口，也就是主要的公開基線設定，負責：
 
 - macOS / Linux 的 Zsh bootstrap ownership 與 managed fragments
 - Windows PowerShell 5.1 / 7+ profile baseline
@@ -201,10 +202,10 @@ repo 內提供了參考範本：
 
 README 裡統一稱呼這個概念為 `custom private repo`，不綁死 repo 名稱。
 
-若你把 `private_ssh_overlay = true` 與 `private_ssh_overlay_repo` 設進 `chezmoi` data，public baseline 會額外做兩件事：
+若你把 `private_ssh_overlay = true` 與 `private_ssh_overlay_repo` 設進 `chezmoi` data，公開基線設定會額外做兩件事：
 
 - 透過 `home/.chezmoiexternal.toml.tmpl` 把 private repo checkout 到 `~/.local/share/settingzsh/private-ssh-overlay`
-- 透過 `run_onchange_after_40-install-private-ssh.*` 把 shared 與 machine-specific SSH materialize 到 `~/.ssh/`
+- 透過 `run_onchange_after_40-install-private-ssh.*` 把 shared 與 machine-specific SSH 寫入 `~/.ssh/`
 
 也就是說，private repo 仍不是主系統，但可以成為受控的第二階段 feed。
 
@@ -355,12 +356,12 @@ private SSH repo 的正式路徑模型分成兩種：
 - `custom managed path`
   - 例如 `~/.ssh/custom-paths/sympasoft-macmini-ssh/<key>`
 
-若使用自動 private overlay，script 會優先嘗試用 `sops decrypt` materialize 到 `~/.ssh/`；沒有 `sops` 或檔案本身不是密文時，才直接複製原檔。建議至少保留兩組 recipients：
+若使用自動 private overlay，script 會優先嘗試用 `sops decrypt` 寫入到 `~/.ssh/`；沒有 `sops` 或檔案本身不是密文時，才直接複製原檔。建議至少保留兩組 recipients：
 
 - `owner`
 - `recovery`
 
-詳細操作（`.sops.yaml`、`updatekeys`、`rotate`）請看 [sops-age.md](/Users/arlen/Documents/syncthing/backup/server/Code/settingZsh/.worktrees/settingzsh-chezmoi/docs/secrets/sops-age.md)。
+詳細操作（`.sops.yaml`、`updatekeys`、`rotate`）請看 [sops-age.md](./secrets/sops-age.md)。
 
 這些限制不是缺點，而是用來降低維護面與避免責任失控的 guardrails。
 

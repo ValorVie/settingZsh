@@ -36,6 +36,8 @@ def test_readme_mentions_bootstrap_doctor_migrate_and_private_repo() -> None:
     assert "dot_config/settingzsh/powershell/" in readme
     assert "docs/adoption-guide.md" in readme
     assert "docs/architecture-diagram.md" in readme
+    assert "docs/fresh-install-inventory.md" in readme
+    assert "docs/terminology.md" in readme
     assert "keepassxc-cli" in readme
     assert "gopass" in readme
     assert "SOPS + age" in readme
@@ -56,6 +58,9 @@ def test_architecture_doc_explains_dotfiles_chezmoi_and_project_layers() -> None
         encoding="utf-8"
     )
 
+    assert "來源目錄" in architecture
+    assert "目標檔案" in architecture
+    assert "terminology.md" in architecture
     assert "dotfiles" in architecture
     assert "chezmoi" in architecture
     assert "public baseline" in architecture
@@ -81,10 +86,42 @@ def test_architecture_diagram_doc_exists_and_has_mermaid_views() -> None:
     )
 
     assert "```mermaid" in diagram
-    assert "Fresh Install 流程" in diagram
+    assert "新機器首次安裝流程" in diagram
+    assert "terminology.md" in diagram
     assert ".zshrc" in diagram
     assert "private_ssh_overlay" in diagram
     assert "~/.ssh/custom-paths" in diagram
+
+
+def test_fresh_install_inventory_doc_lists_flow_targets_and_scripts() -> None:
+    inventory = (_PROJECT_ROOT / "docs" / "fresh-install-inventory.md").read_text(
+        encoding="utf-8"
+    )
+
+    assert "terminology.md" in inventory
+    assert "寫入落地" in (_PROJECT_ROOT / "docs" / "terminology.md").read_text(encoding="utf-8")
+    assert "基線設定" in inventory
+    assert "新機器首次安裝流程" in inventory
+    assert "~/.local/share/chezmoi" in inventory
+    assert "~/.local/share/chezmoi/home" in inventory
+    assert "~/.zshrc" in inventory
+    assert "~/.config/settingzsh/init.zsh" in inventory
+    assert "~/.local/share/zinit/zinit.git" in inventory
+    assert "~/.ssh/custom-paths" in inventory
+    assert "run_once_before_10-install-base-packages" in inventory
+    assert "run_onchange_after_40-install-private-ssh" in inventory
+
+
+def test_terminology_doc_exists_and_defines_maintenance_rule() -> None:
+    terminology = (_PROJECT_ROOT / "docs" / "terminology.md").read_text(
+        encoding="utf-8"
+    )
+
+    assert "統一維護點" in terminology
+    assert "新增英文術語時，必須同步更新這份總表" in terminology
+    assert "public baseline" in terminology
+    assert "source state" in terminology
+    assert "materialize" in terminology
 
 
 def test_legacy_docs_are_clearly_marked_and_redirect_to_current_flow() -> None:
@@ -117,6 +154,7 @@ def test_adoption_and_secret_guides_exist_and_describe_scope() -> None:
     )
 
     assert "preflight" in adoption
+    assert "terminology.md" in adoption
     assert "legacy import" in adoption
     assert "needs_adopt" in adoption
     assert "desktop file secret" in keepassxc

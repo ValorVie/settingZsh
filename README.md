@@ -1,11 +1,15 @@
 # settingZsh
 
-跨平台 shell / profile baseline，現在以 `chezmoi` 作為主要控制面，支援 macOS、Linux、Windows，並保留 `public baseline + custom private repo` 的 SSH 分層模型。
+跨平台 shell / profile 基線設定，現在以 `chezmoi` 作為主要控制面，支援 macOS、Linux、Windows，並保留「公開基線設定（public baseline）+ 自訂私有 repo（custom private repo）」的 SSH 分層模型。
+
+英文術語總表請先看 `docs/terminology.md`。新增英文術語時，也應同步更新這份總表。
 
 延伸文件：
 
+- `docs/terminology.md`：英文術語總表與建議中文寫法
 - `docs/architecture.md`：架構、dotfiles / `chezmoi` 原理與專案責任邊界
 - `docs/architecture-diagram.md`：目前設計的 Mermaid 架構圖與 fresh-install 流程圖
+- `docs/fresh-install-inventory.md`：新系統首次部署時的行為、落地檔案/目錄與各自作用
 - `docs/adoption-guide.md`：既有機器導入流程、preflight、adopt report 與 legacy import draft
 - `docs/editor-guide.md`：Vim / Neovim 配置與使用方式
 - `docs/secrets/keepassxc-cli.md`：desktop file secret 操作指南
@@ -26,21 +30,21 @@
 ## 這個 repo 會做什麼
 
 - 管理 macOS / Linux 的 `~/.zshrc` bootstrap 與 `~/.config/settingzsh/managed.d/*.zsh`
-- 管理 Windows PowerShell 5.1 / 7+ profile target 與共用 baseline
+- 管理 Windows PowerShell 5.1 / 7+ profile 目標檔案與共用基線設定
 - 透過 `chezmoi run_*` scripts 安裝 base tools、字型與選配 editor 工具
 - 提供 `.ssh/config` 主檔與 `config.d` 分層骨架
 - 保留 Linux / macOS 的 `preflight`、`adopt`、`doctor`、`migrate`、`reconcile`、`legacy-import` CLI，供舊環境遷移與診斷
 
 ## 設計原則
 
-- `public repo` 只管 baseline 與非機密設定
+- `public repo` 只管基線設定與非機密設定
 - SSH keys 與私有 host 規則放在你自己的 `custom private repo`
 - `custom private repo` 建議以 `SOPS + age` 管理密文與 recipients
-- `~/.ssh/config` 主檔永遠由 public baseline 管理
+- `~/.ssh/config` 主檔永遠由公開基線設定管理
 - `custom private repo` 只應該提供 `~/.ssh/**`
 - `known_hosts` 預設不進版控
 - fresh install 與 existing machine adoption 是兩條不同流程
-- `~/.zshrc` 只由 bootstrap 擁有，不再讓 public baseline 接管整份檔案
+- `~/.zshrc` 只由 bootstrap 擁有，不再讓公開基線設定接管整份檔案
 - 新安裝以 `chezmoi` 為主；舊的 `setup*.sh` / `update*.sh` 保留作遷移期參考與回歸驗證
 
 ## 需求
@@ -153,7 +157,7 @@ uv run --directory lib python -m settingzsh.cli preflight
 uv run --directory lib python -m settingzsh.cli adopt
 ```
 
-再依 [docs/adoption-guide.md](/Users/arlen/Documents/syncthing/backup/server/Code/settingZsh/.worktrees/settingzsh-chezmoi/docs/adoption-guide.md) 判斷要不要導入、保留現況，或產生 `legacy import draft`。
+再依 [docs/adoption-guide.md](./docs/adoption-guide.md) 判斷要不要導入、保留現況，或產生 `legacy import draft`。
 
 ### 4. 重新開啟終端機
 
@@ -322,9 +326,9 @@ chezmoi apply
 行為如下：
 
 - external checkout 會落在 `~/.local/share/settingzsh/private-ssh-overlay`
-- `shared/config.d/` 會 materialize 到 `~/.ssh/config.d/`
-- `shared-keys/keys/` 與 `<profile>/keys/` 會 materialize 到 `~/.ssh/`
-- `<profile>/custom-paths/` 會 materialize 到 `~/.ssh/custom-paths/`
+- `shared/config.d/` 會寫入到 `~/.ssh/config.d/`
+- `shared-keys/keys/` 與 `<profile>/keys/` 會寫入到 `~/.ssh/`
+- `<profile>/custom-paths/` 會寫入到 `~/.ssh/custom-paths/`
 - `platform_profile = "auto"` 會用目前機器的 short hostname；若要覆蓋，可用 `SETTINGZSH_PLATFORM_PROFILE` 或 `SETTINGZSH_PRIVATE_SSH_OVERLAY_PROFILE`
 
 若 private repo 內是 `SOPS + age` 密文，目標機器上要先有 `sops`，並提供可用的 age private key，例如：
@@ -530,7 +534,7 @@ custom-private-repo/
 
 1. 先套用 public baseline
 2. 確認 `~/.ssh/config` 與 `~/.ssh/config.d/` 已存在
-3. 建議用 `private_ssh_overlay = true` + `private_ssh_overlay_repo` 讓 `chezmoi apply` 自動拉取並 materialize
+3. 建議用 `private_ssh_overlay = true` + `private_ssh_overlay_repo` 讓 `chezmoi apply` 自動拉取並寫入到正確路徑
 4. 若你不想自動拉取，再走手動 clone / decrypt / copy 流程
 5. 確認 `~/.ssh/config.d/90-private.conf` 與 key file 權限正確（私鑰 600）
 
@@ -669,7 +673,7 @@ uv run --directory lib python -m settingzsh.cli legacy-import
 - `reconcile`：補齊 bootstrap、`init.zsh`、managed fragments
 - `legacy-import`：產生 `local.d/90-legacy-import.zsh.draft`，但不自動啟用
 
-`preflight` / `adopt` 的完整說明請看 [docs/adoption-guide.md](/Users/arlen/Documents/syncthing/backup/server/Code/settingZsh/.worktrees/settingzsh-chezmoi/docs/adoption-guide.md)。
+`preflight` / `adopt` 的完整說明請看 [docs/adoption-guide.md](./docs/adoption-guide.md)。
 
 ## 專案結構
 
@@ -757,7 +761,7 @@ ssh -G <host>
 
 如果你有自己的 private repo，再確認：
 
-- key 是否真的 materialize 到目標路徑
+- key 是否真的寫入到目標路徑
 - `IdentityFile` 與 `IdentitiesOnly yes` 是否一致
 - custom path 是否和實際檔案位置一致
 
@@ -770,7 +774,7 @@ ssh -G <host>
 - Linux 若無 sudo，是否已走 fallback 安裝路徑
 - 若是字型沒裝，檢查是否把 `install_fonts` 關掉了
 
-更細節的 editor 行為請看 [docs/editor-guide.md](/Users/arlen/Documents/syncthing/backup/server/Code/settingZsh/.worktrees/settingzsh-chezmoi/docs/editor-guide.md)。
+更細節的 editor 行為請看 [docs/editor-guide.md](./docs/editor-guide.md)。
 
 ## 已知限制
 

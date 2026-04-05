@@ -2,9 +2,11 @@
 
 這份指南只處理一件事：**這台機器已經有自己的 `~/.zshrc` 時，怎麼安全導入 `settingZsh`**。
 
-如果是新機器，直接看 [README.md](/Users/arlen/Documents/syncthing/backup/server/Code/settingZsh/.worktrees/settingzsh-chezmoi/README.md) 的 `fresh install` 流程即可。
+如果是新機器，直接看 [README.md](../README.md) 的 `fresh install` 流程即可。
 
-這份文件只管 public baseline adoption，不處理 runtime secret 注入；SSH 私有檔案加密流程請看 [sops-age.md](/Users/arlen/Documents/syncthing/backup/server/Code/settingZsh/.worktrees/settingzsh-chezmoi/docs/secrets/sops-age.md)。
+如果你不熟這份文件裡的英文術語，先看 [terminology.md](./terminology.md)。
+
+這份文件只管 public baseline adoption，不處理 runtime secret 注入；SSH 私有檔案加密流程請看 [sops-age.md](./secrets/sops-age.md)。
 
 ## 核心原則
 
