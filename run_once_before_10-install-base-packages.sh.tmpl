@@ -1,3 +1,4 @@
+{{- if ne .chezmoi.os "windows" -}}
 #!/usr/bin/env bash
 set -euo pipefail
 
@@ -83,3 +84,4 @@ case "$OS" in
   linux) install_linux_base ;;
   *) echo "[settingzsh] unsupported os for unix base script: $OS" ;;
 esac
+{{- end -}}

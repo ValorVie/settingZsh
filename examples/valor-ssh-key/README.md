@@ -54,6 +54,10 @@
 公開的 chezmoi baseline **不會**自動拉取或解密 private repo，以下步驟需手動執行：
 
 ```bash
+# 0. 先把 public baseline 套好
+chezmoi init --apply https://github.com/ValorVie/settingZsh.git
+# 或：chezmoi init --apply --branch codex/settingzsh-chezmoi https://github.com/ValorVie/settingZsh.git
+
 # 1. 確認目標機器上有 sops 和 age
 brew install sops age   # 或用你的套件管理器
 

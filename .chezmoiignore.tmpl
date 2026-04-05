@@ -1,0 +1,11 @@
+# Patterns here match target paths, not source filenames.
+{{- if ne .chezmoi.os "windows" }}
+10-install-base-packages.ps1
+20-install-fonts.ps1
+30-install-editor.ps1
+{{- end }}
+{{- if eq .chezmoi.os "windows" }}
+10-install-base-packages.sh
+20-install-fonts.sh
+30-install-editor.sh
+{{- end }}

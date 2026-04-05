@@ -1,3 +1,4 @@
+{{- if eq .chezmoi.os "windows" -}}
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
@@ -57,3 +58,4 @@ if (Test-Path $sourceNvim) {
 } else {
     Write-Host "[settingzsh] nvim source not found: $sourceNvim"
 }
+{{- end -}}

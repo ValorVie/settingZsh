@@ -29,7 +29,9 @@
 ### 1. 先 init，但不要直接 apply
 
 ```bash
-chezmoi init <public-repo>
+chezmoi init https://github.com/ValorVie/settingZsh.git
+# 若你要測試分支：
+# chezmoi init --branch codex/settingzsh-chezmoi https://github.com/ValorVie/settingZsh.git
 chezmoi cd
 ```
 

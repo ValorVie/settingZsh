@@ -1,3 +1,4 @@
+{{- if ne .chezmoi.os "windows" -}}
 #!/usr/bin/env bash
 set -euo pipefail
 
@@ -207,3 +208,4 @@ esac
 install_nvm_and_node_lts
 merge_vimrc
 deploy_nvim_config
+{{- end -}}

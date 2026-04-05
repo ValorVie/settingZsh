@@ -96,7 +96,11 @@ brew install chezmoi
 **Linux**
 
 ```bash
+# 預設安裝到 ~/.local/bin
 sh -c "$(curl -fsLS get.chezmoi.io)"
+
+# 若你要放到 /usr/bin，改用 -b 指定目錄（需 root 權限）
+sudo sh -c "$(curl -fsLS get.chezmoi.io)" -- -b /usr/bin
 ```
 
 **Windows**
@@ -107,10 +111,22 @@ winget install twpayne.chezmoi
 
 ### 2. fresh install：套用 public baseline
 
-把 `<public-repo>` 換成你自己的 repo URL：
+這份 README 內的 `public repo` 範例都用本專案：
 
 ```bash
-chezmoi init --apply <public-repo>
+PUBLIC_REPO="https://github.com/ValorVie/settingZsh.git"
+```
+
+直接套用預設 branch：
+
+```bash
+chezmoi init --apply "$PUBLIC_REPO"
+```
+
+若你要指定 branch，例如測試 `codex/settingzsh-chezmoi`：
+
+```bash
+chezmoi init --apply --branch codex/settingzsh-chezmoi "$PUBLIC_REPO"
 ```
 
 如果已經 init 過，之後更新直接用：
@@ -124,7 +140,8 @@ chezmoi update
 如果這台機器已經有自己的 `~/.zshrc`，建議先：
 
 ```bash
-chezmoi init <public-repo>
+chezmoi init "$PUBLIC_REPO"
+# 或：chezmoi init --branch codex/settingzsh-chezmoi "$PUBLIC_REPO"
 chezmoi cd
 uv run --directory lib python -m settingzsh.cli preflight
 ```
@@ -154,14 +171,15 @@ exec zsh
 ### 我是新機器，想直接裝好
 
 1. 安裝 `chezmoi`
-2. `chezmoi init --apply <public-repo>`
+2. `chezmoi init --apply https://github.com/ValorVie/settingZsh.git`
 3. 重新開啟 shell
 4. 視需要再開 `feature_editor`
 5. 最後再接你的 `custom private repo`
 
 ### 這台機器已經有自己的 `.zshrc`
 
-1. `chezmoi init <public-repo>`
+1. `chezmoi init https://github.com/ValorVie/settingZsh.git`
+   若要測試分支，可改成 `chezmoi init --branch codex/settingzsh-chezmoi https://github.com/ValorVie/settingZsh.git`
 2. `chezmoi cd`
 3. 跑 `preflight`
 4. 若不是 `safe`，先跑 `adopt`
@@ -196,7 +214,7 @@ exec zsh
 最小流程：
 
 ```bash
-chezmoi init <public-repo>
+chezmoi init "$PUBLIC_REPO"
 chezmoi cd
 uv run --directory lib python -m settingzsh.cli preflight
 ```
@@ -461,7 +479,8 @@ custom-private-repo/
 1. public baseline 先完成
 
 ```bash
-chezmoi init --apply <public-repo>
+chezmoi init --apply https://github.com/ValorVie/settingZsh.git
+# 或：chezmoi init --apply --branch codex/settingzsh-chezmoi https://github.com/ValorVie/settingZsh.git
 ```
 
 2. 準備 private repo 結構
@@ -525,7 +544,8 @@ chezmoi cd
 ### 常用指令速查
 
 ```bash
-chezmoi init --apply <public-repo>
+chezmoi init --apply https://github.com/ValorVie/settingZsh.git
+chezmoi init --apply --branch codex/settingzsh-chezmoi https://github.com/ValorVie/settingZsh.git
 chezmoi update
 chezmoi diff
 chezmoi apply
@@ -611,7 +631,9 @@ pwsh -File tests/chezmoi/test_windows_profile.ps1
 先不要硬套，先跑：
 
 ```bash
-chezmoi init <public-repo>
+chezmoi init https://github.com/ValorVie/settingZsh.git
+# 若你正在測試分支：
+# chezmoi init --branch codex/settingzsh-chezmoi https://github.com/ValorVie/settingZsh.git
 chezmoi cd
 uv run --directory lib python -m settingzsh.cli preflight
 uv run --directory lib python -m settingzsh.cli adopt

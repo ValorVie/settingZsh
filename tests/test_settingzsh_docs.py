@@ -10,6 +10,10 @@ def test_readme_mentions_bootstrap_doctor_migrate_and_private_repo() -> None:
     readme = (_PROJECT_ROOT / "README.md").read_text(encoding="utf-8")
 
     assert "chezmoi init --apply" in readme
+    assert 'sh -c "$(curl -fsLS get.chezmoi.io)"' in readme
+    assert "/usr/bin" in readme
+    assert "https://github.com/ValorVie/settingZsh.git" in readme
+    assert "--branch codex/settingzsh-chezmoi" in readme
     assert "fresh install" in readme
     assert "existing machine" in readme
     assert "bootstrap" in readme
