@@ -2,26 +2,41 @@ from __future__ import annotations
 
 import re
 
-from settingzsh.shellgen import (
-    render_bootstrap_file as _render_bootstrap_file,
-    render_bootstrap_block as _render_bootstrap_block,
-    render_init_zsh as _render_init_zsh,
-    render_managed_fragments as _render_managed_fragments,
-)
-
 BOOTSTRAP_BEGIN = "# >>> settingZsh bootstrap >>>"
 BOOTSTRAP_END = "# <<< settingZsh bootstrap <<<"
+_BOOTSTRAP_FILE = (
+    "# managed by chezmoi: settingZsh public baseline\n"
+    "if [ -f \"$HOME/.config/settingzsh/init.zsh\" ]; then\n"
+    "  source \"$HOME/.config/settingzsh/init.zsh\"\n"
+    "fi\n"
+)
+_BOOTSTRAP_BLOCK = (
+    "# >>> settingZsh bootstrap >>>\n"
+    "[ -f \"$HOME/.config/settingzsh/init.zsh\" ] && source \"$HOME/.config/settingzsh/init.zsh\"\n"
+    "# <<< settingZsh bootstrap <<<\n"
+)
 _BOOTSTRAP_BLOCK_RE = re.compile(
     rf"(?ms)(?:\n)?{re.escape(BOOTSTRAP_BEGIN)}\n.*?{re.escape(BOOTSTRAP_END)}\n?"
 )
 
+__all__ = [
+    "BOOTSTRAP_BEGIN",
+    "BOOTSTRAP_END",
+    "ensure_single_bootstrap_block",
+    "has_bootstrap_block",
+    "is_bootstrap_file",
+    "render_bootstrap_block",
+    "render_bootstrap_file",
+    "strip_bootstrap_content",
+]
+
 
 def render_bootstrap_file() -> str:
-    return _render_bootstrap_file()
+    return _BOOTSTRAP_FILE
 
 
 def render_bootstrap_block() -> str:
-    return _render_bootstrap_block()
+    return _BOOTSTRAP_BLOCK
 
 
 def has_bootstrap_block(content: str) -> bool:
@@ -29,16 +44,7 @@ def has_bootstrap_block(content: str) -> bool:
 
 
 def is_bootstrap_file(content: str) -> bool:
-    normalized = content.strip()
-    return normalized == render_bootstrap_file().strip()
-
-
-def render_init_zsh() -> str:
-    return _render_init_zsh()
-
-
-def render_managed_fragments() -> dict[str, str]:
-    return _render_managed_fragments()
+    return content.strip() == _BOOTSTRAP_FILE.strip()
 
 
 def strip_bootstrap_content(content: str) -> str:
