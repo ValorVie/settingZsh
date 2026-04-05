@@ -25,7 +25,7 @@ OS="$(uname -s)"
 if [ "$OS" = "Darwin" ]; then
     pass "uname -s = Darwin"
 else
-    fail "uname -s = $OS (expected Darwin)"
+    warn "uname -s = $OS（非 macOS 主機，僅做靜態腳本檢查）"
 fi
 
 # --- Test 2: Homebrew ---
@@ -246,22 +246,26 @@ else
     warn "uv 未安裝（首次安裝時會自動處理）"
 fi
 
-# --- Test: setup 使用 Python CLI ---
-echo "--- Test: setup 使用 Python CLI ---"
-if grep -q 'python -m settingzsh\.cli' "$SCRIPT_DIR/setup_mac.sh" \
-    && grep -q 'run_settingzsh_cli setup' "$SCRIPT_DIR/setup_mac.sh"; then
-    pass "setup_mac.sh 以 Python CLI 執行 setup"
+# --- Test: setup 使用 chezmoi ---
+echo "--- Test: setup 使用 chezmoi ---"
+if grep -q 'run_settingzsh_chezmoi' "$SCRIPT_DIR/setup_mac.sh" \
+    && grep -q 'chezmoi -S' "$SCRIPT_DIR/setup_mac.sh" \
+    && grep -q 'apply --init --force' "$SCRIPT_DIR/setup_mac.sh" \
+    && ! grep -q 'python -m settingzsh\.cli' "$SCRIPT_DIR/setup_mac.sh"; then
+    pass "setup_mac.sh 直接使用 chezmoi 套用本地 source state"
 else
-    fail "setup_mac.sh 尚未改用 python -m settingzsh.cli setup"
+    fail "setup_mac.sh 尚未改成直接使用 chezmoi"
 fi
 
-# --- Test: update 使用 Python CLI ---
-echo "--- Test: update 使用 Python CLI ---"
-if grep -q 'python -m settingzsh\.cli' "$SCRIPT_DIR/update_mac.sh" \
-    && grep -q 'run_settingzsh_cli reconcile' "$SCRIPT_DIR/update_mac.sh"; then
-    pass "update_mac.sh 以 Python CLI 執行 reconcile"
+# --- Test: update 使用 chezmoi ---
+echo "--- Test: update 使用 chezmoi ---"
+if grep -q 'run_settingzsh_chezmoi' "$SCRIPT_DIR/update_mac.sh" \
+    && grep -q 'chezmoi -S' "$SCRIPT_DIR/update_mac.sh" \
+    && grep -q 'apply --init --force' "$SCRIPT_DIR/update_mac.sh" \
+    && ! grep -q 'python -m settingzsh\.cli' "$SCRIPT_DIR/update_mac.sh"; then
+    pass "update_mac.sh 直接使用 chezmoi 套用本地 source state"
 else
-    fail "update_mac.sh 尚未改用 python -m settingzsh.cli reconcile"
+    fail "update_mac.sh 尚未改成直接使用 chezmoi"
 fi
 
 # --- Test: setup 不可保留 .zshrc destructive fallback ---

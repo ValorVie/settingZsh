@@ -57,12 +57,8 @@ install_uv() {
     fi
 }
 
-run_settingzsh_cli() {
-    local command="$1"
-    (
-        cd "$SCRIPT_DIR/lib"
-        uv run python -m settingzsh.cli "$command"
-    )
+run_settingzsh_chezmoi() {
+    chezmoi -S "$SCRIPT_DIR" apply --init --force
 }
 
 merge_vimrc() {
@@ -112,7 +108,7 @@ install_zsh_env() {
 
     # 6. 套用 settingZsh shell bootstrap
     echo "=== 套用 settingZsh shell bootstrap... ==="
-    run_settingzsh_cli setup
+    run_settingzsh_chezmoi
 }
 
 # =============================================================================
@@ -226,7 +222,7 @@ install_editor_env() {
 
     # 8. 同步 settingZsh shell 狀態
     echo "=== 同步 settingZsh shell 狀態... ==="
-    run_settingzsh_cli reconcile
+    run_settingzsh_chezmoi
 }
 
 # =============================================================================

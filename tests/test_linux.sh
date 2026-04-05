@@ -222,32 +222,26 @@ else
     warn "uv 未安裝（首次安裝時會自動處理）"
 fi
 
-# --- Test: setup 使用 Python CLI ---
-echo "--- Test: setup 使用 Python CLI ---"
-if grep -q 'python -m settingzsh\.cli' "$PROJECT_DIR/setup_linux.sh" \
-    && grep -q 'run_settingzsh_cli setup' "$PROJECT_DIR/setup_linux.sh"; then
-    pass "setup_linux.sh 以 Python CLI 執行 setup"
+# --- Test: setup 使用 chezmoi ---
+echo "--- Test: setup 使用 chezmoi ---"
+if grep -q 'run_settingzsh_chezmoi' "$PROJECT_DIR/setup_linux.sh" \
+    && grep -q 'chezmoi -S' "$PROJECT_DIR/setup_linux.sh" \
+    && grep -q 'apply --init --force' "$PROJECT_DIR/setup_linux.sh" \
+    && ! grep -q 'python -m settingzsh\.cli' "$PROJECT_DIR/setup_linux.sh"; then
+    pass "setup_linux.sh 直接使用 chezmoi 套用本地 source state"
 else
-    fail "setup_linux.sh 尚未改用 python -m settingzsh.cli setup"
+    fail "setup_linux.sh 尚未改成直接使用 chezmoi"
 fi
 
-# --- Test: templates ---
-echo "--- Test: templates ---"
-for tpl in templates/zshrc_base_mac.zsh templates/zshrc_base_linux.zsh templates/zshrc_editor.zsh; do
-    if [ -f "$PROJECT_DIR/$tpl" ]; then
-        pass "$tpl 存在"
-    else
-        fail "$tpl 不存在"
-    fi
-done
-
-# --- Test: update 使用 Python CLI ---
-echo "--- Test: update 使用 Python CLI ---"
-if grep -q 'python -m settingzsh\.cli' "$PROJECT_DIR/update_linux.sh" \
-    && grep -q 'run_settingzsh_cli reconcile' "$PROJECT_DIR/update_linux.sh"; then
-    pass "update_linux.sh 以 Python CLI 執行 reconcile"
+# --- Test: update 使用 chezmoi ---
+echo "--- Test: update 使用 chezmoi ---"
+if grep -q 'run_settingzsh_chezmoi' "$PROJECT_DIR/update_linux.sh" \
+    && grep -q 'chezmoi -S' "$PROJECT_DIR/update_linux.sh" \
+    && grep -q 'apply --init --force' "$PROJECT_DIR/update_linux.sh" \
+    && ! grep -q 'python -m settingzsh\.cli' "$PROJECT_DIR/update_linux.sh"; then
+    pass "update_linux.sh 直接使用 chezmoi 套用本地 source state"
 else
-    fail "update_linux.sh 尚未改用 python -m settingzsh.cli reconcile"
+    fail "update_linux.sh 尚未改成直接使用 chezmoi"
 fi
 
 # --- Test: setup 不可保留 .zshrc destructive fallback ---

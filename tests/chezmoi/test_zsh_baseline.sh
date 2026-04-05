@@ -25,9 +25,6 @@ require_contains() {
 require_file "home/dot_config/settingzsh/init.zsh.tmpl"
 require_file "home/dot_config/settingzsh/managed.d/10-base.zsh.tmpl"
 require_file "home/dot_config/settingzsh/managed.d/40-editor.zsh.tmpl"
-require_file "templates/zshrc_base_mac.zsh"
-require_file "templates/zshrc_base_linux.zsh"
-require_file "templates/zshrc_editor.zsh"
 
 require_contains "home/dot_config/settingzsh/init.zsh.tmpl" "SETTINGZSH_LOADED" "init loader missing session guard"
 require_contains "home/dot_config/settingzsh/init.zsh.tmpl" "managed.d/*.zsh(N)" "init loader missing managed fragments loop"
@@ -77,20 +74,5 @@ fi
 require_contains "home/dot_config/settingzsh/managed.d/40-editor.zsh.tmpl" "nvm" "editor fragment missing nvm integration placeholder"
 require_contains "home/dot_config/settingzsh/managed.d/40-editor.zsh.tmpl" "SETTINGZSH_DISABLE_EDITOR_SHELL" "editor fragment missing feature flag guard"
 require_contains "home/dot_config/settingzsh/managed.d/40-editor.zsh.tmpl" "lazy_nvm()" "editor fragment missing lazy_nvm helper"
-require_contains "templates/zshrc_editor.zsh" "SETTINGZSH_DISABLE_EDITOR_SHELL" "legacy editor template missing feature flag guard"
-require_contains "templates/zshrc_editor.zsh" "lazy_nvm()" "legacy editor template missing lazy_nvm helper"
-
-for tpl in templates/zshrc_base_mac.zsh templates/zshrc_base_linux.zsh; do
-    require_contains "$tpl" "managed fragment template" "legacy zsh template missing managed-fragment role marker"
-    if rg -q -e '# -----------------------------|brew shellenv|git clone' "$tpl"; then
-        echo "legacy template still includes full-file/installer behavior: $tpl"
-        exit 1
-    fi
-done
-
-if rg -q -e '# -----------------------------' templates/zshrc_editor.zsh; then
-    echo "legacy editor template still looks like full-file shell content"
-    exit 1
-fi
 
 echo "task3 zsh baseline checks: ok"
