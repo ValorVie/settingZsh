@@ -13,7 +13,7 @@ if (-not $isWindowsHost) {
     exit 0
 }
 
-$installFontsDefault = "{{ if (get . "install_fonts") }}true{{ else }}false{{ end }}"
+$installFontsDefault = "{{ if (get (get . "features") "fonts") }}true{{ else }}false{{ end }}"
 $installFonts = if ($env:SETTINGZSH_INSTALL_FONTS) { $env:SETTINGZSH_INSTALL_FONTS } else { $installFontsDefault }
 if ($installFonts -notmatch '^(1|true|TRUE|yes|YES|on|ON)$') {
     Write-Host "[settingzsh] fonts feature disabled, skip windows fonts install script"

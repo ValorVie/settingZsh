@@ -13,10 +13,10 @@ if (-not $isWindowsHost) {
     exit 0
 }
 
-$overlayEnabledDefault = "{{ if (get . "private_ssh_overlay") }}true{{ else }}false{{ end }}"
+$overlayEnabledDefault = "{{ if (get (get . "features") "private_ssh_overlay") }}true{{ else }}false{{ end }}"
 $overlayEnabled = if ($env:SETTINGZSH_PRIVATE_SSH_OVERLAY) { $env:SETTINGZSH_PRIVATE_SSH_OVERLAY } else { $overlayEnabledDefault }
-$overlayRepo = "{{ get . "private_ssh_overlay_repo" }}"
-$profileDefault = "{{ get . "platform_profile" }}"
+$overlayRepo = "{{ get (get . "overlay") "repo" }}"
+$profileDefault = "{{ get (get . "overlay") "profile" }}"
 $profileValue = if ($env:SETTINGZSH_PRIVATE_SSH_OVERLAY_PROFILE) {
     $env:SETTINGZSH_PRIVATE_SSH_OVERLAY_PROFILE
 } elseif ($env:SETTINGZSH_PLATFORM_PROFILE) {
@@ -25,7 +25,7 @@ $profileValue = if ($env:SETTINGZSH_PRIVATE_SSH_OVERLAY_PROFILE) {
     $profileDefault
 }
 $overlayDir = Join-Path $HOME ".local\share\settingzsh\private-ssh-overlay"
-# {{- if and (get . "private_ssh_overlay") (get . "private_ssh_overlay_repo") }} overlay-head={{- if (stat (joinPath .chezmoi.homeDir ".local" "share" "settingzsh" "private-ssh-overlay")) }}{{ output "git" "-C" (joinPath .chezmoi.homeDir ".local" "share" "settingzsh" "private-ssh-overlay") "rev-parse" "HEAD" | trim }}{{ else }}initial{{ end }}{{- end }}
+# {{- if and (get (get . "features") "private_ssh_overlay") (get (get . "overlay") "repo") }} overlay-head={{- if (stat (joinPath .chezmoi.homeDir ".local" "share" "settingzsh" "private-ssh-overlay")) }}{{ output "git" "-C" (joinPath .chezmoi.homeDir ".local" "share" "settingzsh" "private-ssh-overlay") "rev-parse" "HEAD" | trim }}{{ else }}initial{{ end }}{{- end }}
 
 function Test-Truthy {
     param([string]$Value)

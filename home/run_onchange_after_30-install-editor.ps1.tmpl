@@ -13,7 +13,7 @@ if (-not $isWindowsHost) {
     exit 0
 }
 
-$featureEditorDefault = "{{ if (get . "feature_editor") }}true{{ else }}false{{ end }}"
+$featureEditorDefault = "{{ if (get (get . "features") "editor") }}true{{ else }}false{{ end }}"
 $featureEditor = if ($env:SETTINGZSH_FEATURE_EDITOR) { $env:SETTINGZSH_FEATURE_EDITOR } else { $featureEditorDefault }
 if ($featureEditor -notmatch '^(1|true|TRUE|yes|YES|on|ON)$') {
     Write-Host "[settingzsh] editor feature disabled, skip windows editor install script"
