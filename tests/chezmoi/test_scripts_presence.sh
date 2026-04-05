@@ -83,6 +83,7 @@ do
   require_not_contains "$template" "private_ssh_overlay_repo" "legacy private_ssh_overlay_repo key still present in $template"
   require_not_contains "$template" "platform_profile" "legacy platform_profile key still present in $template"
 done
+require_not_contains "home/run_onchange_after_40-install-private-ssh.ps1.tmpl" 'get . "private_ssh_overlay"' "legacy direct private_ssh_overlay lookup still present in windows private ssh template"
 
 CHEZMOI_BIN="${CHEZMOI_BIN:-/tmp/settingzsh-chezmoi-e2e/bin/chezmoi}"
 if [ ! -x "$CHEZMOI_BIN" ]; then
