@@ -18,19 +18,17 @@ Linux / macOS 下，editor 相關 shell 設定不再直接 merge 到整份 `~/.z
 - `~/.config/settingzsh/managed.d/40-editor.zsh`
   - 包含 `nvm` lazy loading 等 editor shell 設定
 
-目前主要入口是 `chezmoi apply` 搭配 `feature_editor`。若你是從舊版 marker 結構升級，才需要手動跑 legacy CLI。
+目前主要入口是 `chezmoi apply` 搭配 `[data.features]` 下的 `editor = true`。如果你只是想確認 editor 狀態，先跑 `doctor`；如果你是在既有機器上評估導入風險，回到 adoption guide 看 `preflight` / `adopt`。
 
 ```bash
 uv run --directory lib python -m settingzsh.cli doctor
-uv run --directory lib python -m settingzsh.cli migrate
-uv run --directory lib python -m settingzsh.cli reconcile
 ```
 
 建議啟用方式：
 
 ```toml
-[data]
-feature_editor = true
+[data.features]
+editor = true
 ```
 
 然後執行：
@@ -274,11 +272,10 @@ Markdown 檔案預設**不自動格式化**，且保留行尾空白（Markdown �
 
 ### `node` / `nvm` 指令突然不見了？
 
-先確認你是否已啟用 `feature_editor`，以及 bootstrap 與 editor fragment 是否仍在：
+先確認你是否已啟用 `[data.features].editor`，以及 bootstrap 與 editor fragment 是否仍在：
 
 ```bash
 uv run --directory lib python -m settingzsh.cli doctor
-uv run --directory lib python -m settingzsh.cli reconcile
 ```
 
-如果是從舊版 `.zshrc` markers 升級，先執行一次 `migrate` 再重開 shell。若是新環境，重新跑一次 `chezmoi apply` 會比直接執行舊 wrapper 更準確。
+如果是既有機器，先回 adoption guide 檢查 `preflight` / `adopt`。若是新環境，重新跑一次 `chezmoi apply` 會比任何退役的 wrapper 更準確。

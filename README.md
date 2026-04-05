@@ -1,6 +1,6 @@
 # settingZsh
 
-跨平台 shell / profile 基線設定，現在以 `chezmoi` 作為主要控制面，支援 macOS、Linux、Windows，並保留「公開基線設定（public baseline）+ 自訂私有 repo（custom private repo）」的 SSH 分層模型。
+跨平台 shell / profile 基線設定，現在以 `chezmoi` 作為唯一主控制面與主寫檔流程，支援 macOS、Linux、Windows，並保留「公開基線設定（public baseline）+ 自訂私有 repo（custom private repo）」的 SSH 分層模型。
 
 英文術語總表請先看 `docs/terminology.md`。新增英文術語時，也應同步更新這份總表。
 
@@ -33,7 +33,8 @@
 - 管理 Windows PowerShell 5.1 / 7+ profile 目標檔案與共用基線設定
 - 透過 `chezmoi run_*` scripts 安裝 base tools、字型與選配 editor 工具
 - 提供 `.ssh/config` 主檔與 `config.d` 分層骨架
-- 保留 Linux / macOS 的 `preflight`、`adopt`、`doctor`、`migrate`、`reconcile`、`legacy-import` CLI，供舊環境遷移與診斷
+- `settingzsh.cli` 只保留 Linux / macOS 的 guardrails：`preflight`、`adopt`、`doctor`、`legacy-import`
+- `settingzsh.cli` 的 `setup`、`update`、`migrate`、`reconcile` 已退役 / deprecated，不再是正常寫檔流程
 
 ## 設計原則
 
@@ -45,7 +46,7 @@
 - `known_hosts` 預設不進版控
 - fresh install 與 existing machine adoption 是兩條不同流程
 - `~/.zshrc` 只由 bootstrap 擁有，不再讓公開基線設定接管整份檔案
-- 新安裝以 `chezmoi` 為主；舊的 `setup*.sh` / `update*.sh` 保留作遷移期參考與回歸驗證
+- 新安裝與 baseline 更新都只走 `chezmoi`；舊的 `setup*.sh` / `update*.sh` 已退役，只保留歷史參考與回歸驗證
 
 ## 需求
 
@@ -157,7 +158,7 @@ uv run --directory lib python -m settingzsh.cli preflight
 uv run --directory lib python -m settingzsh.cli adopt
 ```
 
-再依 [docs/adoption-guide.md](./docs/adoption-guide.md) 判斷要不要導入、保留現況，或產生 `legacy import draft`。
+再依 [docs/adoption-guide.md](./docs/adoption-guide.md) 判斷要不要導入、保留現況，或產生 `legacy import draft`。不要把 `migrate` / `reconcile` 當成這裡的下一步。
 
 ### 4. 重新開啟終端機
 
@@ -178,7 +179,7 @@ exec zsh
 1. 安裝 `chezmoi`
 2. `chezmoi init --apply https://github.com/ValorVie/settingZsh.git`
 3. 重新開啟 shell
-4. 視需要再開 `feature_editor`
+4. 視需要再開 editor feature（`[data.features]` 下的 `editor = true`）
 5. 最後再接你的 `custom private repo`
 
 ### 這台機器已經有自己的 `.zshrc`
@@ -194,13 +195,13 @@ exec zsh
 
 1. `chezmoi update`
 2. 若有 shell 異常，再跑 `doctor`
-3. 若懷疑 managed fragments 缺檔，再跑 `reconcile`
+3. 若是既有機器要看導入風險，回到 `preflight` / `adopt`
 
 ### 我想把 SSH 私有設定接上去
 
 1. 先確認 public baseline 已建立 `~/.ssh/config`
 2. 準備好 `custom private repo`（結構參考 [`examples/valor-ssh-key/`](examples/valor-ssh-key/README.md)）
-3. 在 `~/.config/chezmoi/chezmoi.toml` 開啟 `private_ssh_overlay` 並填入 `private_ssh_overlay_repo`
+3. 在 `~/.config/chezmoi/chezmoi.toml` 開啟 `[data.features].private_ssh_overlay`，並填入 `[data.overlay].repo`
 4. 若 repo 內是 `SOPS + age` 密文，先準備 `sops` 與 `SOPS_AGE_KEY_FILE`
 5. 跑 `chezmoi apply` 或 `chezmoi update`
 6. 跑 `ssh -G <host>` 檢查結果
@@ -210,7 +211,7 @@ exec zsh
 `preflight` 只有三種主要結果：
 
 - `safe`
-  - 可以繼續 `chezmoi apply` 或 `reconcile`
+  - 可以繼續 `chezmoi apply` 或 `chezmoi update`
 - `needs_adopt`
   - 代表這台機器已有重型 shell 生態
   - 先跑 `adopt`，不要直接套用
@@ -266,23 +267,25 @@ uv run --directory lib python -m settingzsh.cli preflight
 這個 repo 用 repo root 的 `.chezmoiroot` 把 chezmoi source root 指到 `home/`，所以主要 data key 在 `home/.chezmoi.toml.tmpl`：
 
 ```toml
-[data]
-feature_editor = false
+[data.features]
+editor = false
+fonts = true
 private_ssh_overlay = false
-private_ssh_overlay_repo = ""
-install_fonts = true
-platform_profile = "auto"
+
+[data.overlay]
+repo = ""
+profile = "auto"
 ```
 
 private overlay external 定義放在 `home/.chezmoiexternal.toml.tmpl`。
 
 目前真正會影響安裝行為的主要是：
 
-- `feature_editor`
-- `install_fonts`
-- `private_ssh_overlay`
-- `private_ssh_overlay_repo`
-- `platform_profile`
+- `[data.features].editor`
+- `[data.features].fonts`
+- `[data.features].private_ssh_overlay`
+- `[data.overlay].repo`
+- `[data.overlay].profile`
 
 另外可用的環境變數覆蓋有：
 
@@ -295,9 +298,9 @@ private overlay external 定義放在 `home/.chezmoiexternal.toml.tmpl`。
 若你要在本機覆蓋預設值，編輯 `~/.config/chezmoi/chezmoi.toml`：
 
 ```toml
-[data]
-feature_editor = true
-install_fonts = true
+[data.features]
+editor = true
+fonts = true
 ```
 
 改完後重新套用：
@@ -311,10 +314,12 @@ chezmoi apply
 如果你要讓 public baseline 在第二階段自動拉取並落地 SSH private repo，先在本機 `~/.config/chezmoi/chezmoi.toml` 設定：
 
 ```toml
-[data]
+[data.features]
 private_ssh_overlay = true
-private_ssh_overlay_repo = "git@github.com:<you>/<your-private-repo>.git"
-platform_profile = "auto"
+
+[data.overlay]
+repo = "git@github.com:<you>/<your-private-repo>.git"
+profile = "auto"
 ```
 
 再執行：
@@ -329,7 +334,7 @@ chezmoi apply
 - `shared/config.d/` 會寫入到 `~/.ssh/config.d/`
 - `shared-keys/keys/` 與 `<profile>/keys/` 會寫入到 `~/.ssh/`
 - `<profile>/custom-paths/` 會寫入到 `~/.ssh/custom-paths/`
-- `platform_profile = "auto"` 會用目前機器的 short hostname；若要覆蓋，可用 `SETTINGZSH_PLATFORM_PROFILE` 或 `SETTINGZSH_PRIVATE_SSH_OVERLAY_PROFILE`
+- `[data.overlay].profile = "auto"` 會用目前機器的 short hostname；若要覆蓋，可用 `SETTINGZSH_PLATFORM_PROFILE` 或 `SETTINGZSH_PRIVATE_SSH_OVERLAY_PROFILE`
 
 若 private repo 內是 `SOPS + age` 密文，目標機器上要先有 `sops`，並提供可用的 age private key，例如：
 
@@ -352,8 +357,8 @@ chezmoi apply
 **持久化做法**
 
 ```toml
-[data]
-feature_editor = true
+[data.features]
+editor = true
 ```
 
 然後：
@@ -373,15 +378,15 @@ SETTINGZSH_FEATURE_EDITOR=true chezmoi apply
 開啟：
 
 ```toml
-[data]
-feature_editor = true
+[data.features]
+editor = true
 ```
 
 關閉：
 
 ```toml
-[data]
-feature_editor = false
+[data.features]
+editor = false
 ```
 
 改完後都用同一個指令重新套用：
@@ -414,8 +419,8 @@ Linux 目前採用 non-interactive sudo 檢查，不會因為 `chezmoi apply` �
 若你要暫時跳過字型安裝，可用任一種方式：
 
 ```toml
-[data]
-install_fonts = false
+[data.features]
+fonts = false
 ```
 
 或：
@@ -534,7 +539,7 @@ custom-private-repo/
 
 1. 先套用 public baseline
 2. 確認 `~/.ssh/config` 與 `~/.ssh/config.d/` 已存在
-3. 建議用 `private_ssh_overlay = true` + `private_ssh_overlay_repo` 讓 `chezmoi apply` 自動拉取並寫入到正確路徑
+3. 建議用 `[data.features].private_ssh_overlay = true` 搭配 `[data.overlay].repo`，讓 `chezmoi apply` 自動拉取並寫入到正確路徑
 4. 若你不想自動拉取，再走手動 clone / decrypt / copy 流程
 5. 確認 `~/.ssh/config.d/90-private.conf` 與 key file 權限正確（私鑰 600）
 
@@ -560,10 +565,12 @@ chezmoi init --apply https://github.com/ValorVie/settingZsh.git
 3. 自動模式：把 overlay data 接到 chezmoi
 
 ```toml
-[data]
+[data.features]
 private_ssh_overlay = true
-private_ssh_overlay_repo = "git@github.com:<you>/<your-private-repo>.git"
-platform_profile = "auto"
+
+[data.overlay]
+repo = "git@github.com:<you>/<your-private-repo>.git"
+profile = "auto"
 ```
 
 若 private repo 內是密文，再先準備：
@@ -645,12 +652,12 @@ chezmoi cd
 uv run --directory lib python -m settingzsh.cli preflight
 uv run --directory lib python -m settingzsh.cli adopt
 uv run --directory lib python -m settingzsh.cli doctor
-uv run --directory lib python -m settingzsh.cli reconcile
+uv run --directory lib python -m settingzsh.cli legacy-import
 ```
 
 ## 既有系統導入與診斷
 
-Linux / macOS 還保留 `settingzsh.cli`，專門處理既有機器 adoption 與舊版 `settingZsh` 狀態。
+Linux / macOS 還保留 `settingzsh.cli` 的 guardrails，專門處理既有機器 adoption 與舊版 `settingZsh` 狀態；它不是 baseline 寫檔主流程。
 
 在 repo root 執行，不是 `home/` source root：
 
@@ -659,8 +666,6 @@ cd "$(dirname "$(chezmoi source-path)")"
 uv run --directory lib python -m settingzsh.cli preflight
 uv run --directory lib python -m settingzsh.cli adopt
 uv run --directory lib python -m settingzsh.cli doctor
-uv run --directory lib python -m settingzsh.cli migrate
-uv run --directory lib python -m settingzsh.cli reconcile
 uv run --directory lib python -m settingzsh.cli legacy-import
 ```
 
@@ -669,11 +674,18 @@ uv run --directory lib python -m settingzsh.cli legacy-import
 - `preflight`：blocking adoption gate，判斷這台機器能不能安全導入
 - `adopt`：建立 `.zshrc` 備份與 adopt report，不重寫 live shell
 - `doctor`：檢查 bootstrap / legacy marker / interactive shell 驗證狀態
-- `migrate`：把舊版 `settingZsh:*` 區塊搬到 `managed.d`
-- `reconcile`：補齊 bootstrap、`init.zsh`、managed fragments
 - `legacy-import`：產生 `local.d/90-legacy-import.zsh.draft`，但不自動啟用
 
-`preflight` / `adopt` 的完整說明請看 [docs/adoption-guide.md](./docs/adoption-guide.md)。
+退役 / deprecated write paths：
+
+- `setup`
+- `update`
+- `migrate`
+- `reconcile`
+
+這些名稱只保留歷史文件與舊輸出對照，不應再當成新安裝、baseline 更新或 adoption 的下一步。
+
+`preflight` / `adopt` / `doctor` / `legacy-import` 的完整說明請看 [docs/adoption-guide.md](./docs/adoption-guide.md)。
 
 ## 專案結構
 
@@ -769,10 +781,10 @@ ssh -G <host>
 
 先確認：
 
-- `feature_editor = true`
+- `[data.features].editor = true`
 - `chezmoi apply` 已重跑
 - Linux 若無 sudo，是否已走 fallback 安裝路徑
-- 若是字型沒裝，檢查是否把 `install_fonts` 關掉了
+- 若是字型沒裝，檢查是否把 `[data.features].fonts` 關掉了
 
 更細節的 editor 行為請看 [docs/editor-guide.md](./docs/editor-guide.md)。
 
@@ -781,4 +793,4 @@ ssh -G <host>
 - Windows runtime 驗證需要 `pwsh`
 - Linux 無 sudo fallback 仍依賴外網下載 release binary
 - 自動 private overlay 依賴 private repo 可被 git clone；若內容是密文，還需要 `sops` 與 age key
-- 遷移期內 legacy `setup*.sh` / `update*.sh` 仍存在，但新安裝應以 `chezmoi` 為主
+- 遷移期內 legacy `setup*.sh` / `update*.sh` 仍存在，但它們已退役，不再是新安裝或 baseline 更新的正常入口

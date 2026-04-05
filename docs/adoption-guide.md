@@ -14,6 +14,7 @@
 - `~/.zshrc` 只由 bootstrap 擁有
 - 先跑 adoption gate，再決定要不要導入
 - `legacy import` 是 opt-in 的草稿工具，不是高相容保底
+- `setup` / `update` / `migrate` / `reconcile` 是退役 / deprecated write paths，不是 adoption 的建議下一步
 
 ## 什麼情況算 existing machine
 
@@ -47,7 +48,7 @@ uv run --directory lib python -m settingzsh.cli preflight
 
 - `safe`
   - 代表沒有發現需要先中止的重型 shell 狀態
-  - 可以往 `chezmoi apply` 或 `settingzsh.cli reconcile` 前進
+  - 可以往 `chezmoi apply` 前進，或停在現況不動
 - `needs_adopt`
   - 代表這台機器有既有 shell 生態，需要先看 adopt report
 - `broken_existing_shell`
@@ -118,16 +119,16 @@ uv run --directory lib python -m settingzsh.cli legacy-import
 - 有 OpenSpec / bun / brew / `nvm` 混合初始化
 - 有你暫時不想移動的 secrets
 
-## 相關指令
+## 相關 guardrails
 
 ```bash
 uv run --directory lib python -m settingzsh.cli preflight
 uv run --directory lib python -m settingzsh.cli adopt
 uv run --directory lib python -m settingzsh.cli doctor
-uv run --directory lib python -m settingzsh.cli migrate
-uv run --directory lib python -m settingzsh.cli reconcile
 uv run --directory lib python -m settingzsh.cli legacy-import
 ```
+
+如果你在舊文件或舊輸出看到 `setup` / `update` / `migrate` / `reconcile`，把它們視為退役歷史路徑，不要把它們當成 adoption 的下一步。
 
 ## 與 custom private SSH repo 的關係
 

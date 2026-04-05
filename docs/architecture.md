@@ -22,7 +22,7 @@
   - 平台工具安裝
   - 字型安裝
   - editor feature gating
-  - adoption gate、舊版 `settingZsh` 環境遷移與診斷
+  - adoption gate、legacy import draft、retired write paths guardrails 與舊版 `settingZsh` 環境診斷
 
 ## 什麼是 dotfiles
 
@@ -74,8 +74,8 @@ dotfiles 工具通常擅長的是「檔案狀態管理」，不一定擅長處�
 例如：
 
 - macOS / Linux / Windows 可以套不同 profile 路徑
-- `feature_editor = true` 時才啟用 editor 安裝
-- `install_fonts = false` 時跳過字型流程
+- `[data.features].editor = true` 時才啟用 editor 安裝
+- `[data.features].fonts = false` 時跳過字型流程
 
 在這個 repo 裡，這些設定主要來自：
 
@@ -135,9 +135,9 @@ repo root
 │   │   ├── nvim / vim baseline
 │   │   └── machine data / feature flags
 │   └── adoption 相關模板
-└── adoption guardrails
-    ├── preflight / adopt / doctor
-    └── migrate / reconcile / legacy import draft
+└── adoption guardrails / retired paths
+    ├── preflight / adopt / doctor / legacy-import
+    └── setup / update / migrate / reconcile
 
 apply 後的目標檔案
 ├── ~/.zshrc
@@ -202,7 +202,7 @@ repo 內提供了參考範本：
 
 README 裡統一稱呼這個概念為 `custom private repo`，不綁死 repo 名稱。
 
-若你把 `private_ssh_overlay = true` 與 `private_ssh_overlay_repo` 設進 `chezmoi` data，公開基線設定會額外做兩件事：
+若你把 `[data.features].private_ssh_overlay = true` 與 `[data.overlay].repo` 設進 `chezmoi` data，公開基線設定會額外做兩件事：
 
 - 透過 `home/.chezmoiexternal.toml.tmpl` 把 private repo checkout 到 `~/.local/share/settingzsh/private-ssh-overlay`
 - 透過 `run_onchange_after_40-install-private-ssh.*` 把 shared 與 machine-specific SSH 寫入 `~/.ssh/`
@@ -275,10 +275,10 @@ PowerShell 採雙 profile target：
 
 目前至少有四個重要 data knobs：
 
-- `feature_editor`
-- `install_fonts`
-- `private_ssh_overlay`
-- `platform_profile`
+- `[data.features].editor`
+- `[data.features].fonts`
+- `[data.features].private_ssh_overlay`
+- `[data.overlay].profile`
 
 這代表安裝不是單一路徑，而是可以在「維持 baseline」的前提下，針對較重或較私有的功能選擇性啟用。
 
@@ -290,20 +290,17 @@ PowerShell 採雙 profile target：
   - `preflight`
   - `adopt`
   - `doctor`
-- `legacy compatibility`
+- `legacy import draft`
+  - `legacy-import`
+- `retired / deprecated write paths`
+  - `setup`
+  - `update`
   - `migrate`
   - `reconcile`
-  - `legacy-import`
 
-它們的角色不是新系統的主入口，而是處理：
-
-- existing machine adoption
-- blocking preflight
-- bootstrap 補齊
-- 舊版 `settingZsh:*` markers
-- managed fragments 修復
-- interactive shell 診斷
-- legacy import draft
+- `adoption gate` 只處理 existing machine adoption、blocking preflight 與 interactive shell 診斷。
+- `legacy import draft` 只產生 `local.d` 草稿，讓你手動評估是否承接既有 shell 片段。
+- `retired / deprecated write paths` 只保留歷史名稱對照與提示訊息，不再承擔 bootstrap 補齊或 managed fragments 修復。
 
 也就是說，`chezmoi` 現在負責 new baseline，而 adoption gate 負責把既有機器安全帶過來。
 
@@ -344,6 +341,7 @@ PowerShell 採雙 profile target：
 - 不讓 private repo 變成第二套完整 dotfiles 系統
 - 不再回到整份 `.zshrc` merge 模型
 - 不把 runtime secret 注入納入這一輪 adoption guardrails
+- 不把 `settingzsh.cli` 的 `setup` / `update` / `migrate` / `reconcile` 當成正常寫檔入口
 
 補充：private repo 雖然現在可由 `private_ssh_overlay` 自動拉取，但這是明確 opt-in，而且仍受限於 `~/.ssh/**` 這個邊界。
 

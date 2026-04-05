@@ -12,7 +12,8 @@
 - public repo：`https://github.com/ValorVie/settingZsh.git`
 - branch：`codex/settingzsh-chezmoi`
 - 主流程：`chezmoi init --apply`
-- 本文件以「新機器首次部署」為主，不描述既有舊環境導入的 `preflight` / `adopt` / `migrate`
+- 本文件以「新機器首次部署」為主，只描述 `chezmoi` 的首次寫入與後續 baseline 更新；既有機器導入不在這裡談
+- baseline 更新同樣只走 `chezmoi update`
 
 ## 預設行為開關
 
@@ -20,11 +21,11 @@
 
 | 設定 | 預設值 | 影響 |
 | --- | --- | --- |
-| `feature_editor` | `false` | 不執行 editor 安裝腳本 |
-| `private_ssh_overlay` | `false` | 不 clone / 不套用 private SSH overlay |
-| `private_ssh_overlay_repo` | `""` | overlay repo 預設未設定 |
-| `install_fonts` | `true` | 預設會安裝 Maple Mono Nerd Font |
-| `platform_profile` | `"auto"` | private overlay profile 預設依主機名稱自動判斷 |
+| `[data.features].editor` | `false` | 不執行 editor 安裝腳本 |
+| `[data.features].private_ssh_overlay` | `false` | 不 clone / 不套用 private SSH overlay |
+| `[data.overlay].repo` | `""` | overlay repo 預設未設定 |
+| `[data.features].fonts` | `true` | 預設會安裝 Maple Mono Nerd Font |
+| `[data.overlay].profile` | `"auto"` | private overlay profile 預設依主機名稱自動判斷 |
 
 ## 新機器首次安裝流程
 
@@ -56,7 +57,7 @@
 | `~/.cache/zinit/completions/` | Zinit cache/completion 目錄 | `10-install-base-packages` | 提前建立的 completion cache 目錄。 |
 | `~/.fzf/` | `fzf` fallback checkout | Linux fallback 情境 | 當系統套件安裝不到 `fzf` 時，會 clone upstream repo 到這裡並執行安裝器。 |
 | `~/.nvm/` | Node version manager 家目錄 | `30-install-editor` 且 editor feature 啟用 | NVM 與 Node LTS 安裝位置。 |
-| `~/.local/share/fonts/MapleMono/` | Linux 字型安裝目錄 | `20-install-fonts` 且 `install_fonts=true` | Maple Mono Nerd Font 的實際落地位置。 |
+| `~/.local/share/fonts/MapleMono/` | Linux 字型安裝目錄 | `20-install-fonts` 且 `[data.features].fonts = true` | Maple Mono Nerd Font 的實際落地位置。 |
 | `~/Library/Fonts/` | macOS 字型安裝目錄 | `20-install-fonts` | macOS 字型落地位置。 |
 | `~/.local/share/settingzsh/private-ssh-overlay/` | private SSH 覆蓋層的本地 clone | `40-install-private-ssh` 且覆蓋層啟用 | private SSH repo 的本地副本；腳本再把其中內容同步到 `~/.ssh/`、`~/.ssh/config.d/`、`~/.ssh/custom-paths/`。 |
 
@@ -71,7 +72,7 @@
 
 | 目標路徑 | 來源 | 作用 |
 | --- | --- | --- |
-| `~/.zshrc` | `home/modify_dot_zshrc` | shell 主入口。空白機器會寫成最小啟動橋接區塊；既有 `.zshrc` 則保留原內容並正規化成單一 bootstrap 區塊。 |
+| `~/.zshrc` | `home/modify_dot_zshrc` | shell 主入口。新機器首次部署會寫成最小啟動橋接區塊。較複雜的 modify 行為與導入邊界請看 adoption guide。 |
 | `~/.config/settingzsh/init.zsh` | `home/dot_config/settingzsh/init.zsh.tmpl` | `settingZsh` 載入器，先載入 `managed.d/*.zsh`，再載入 `local.d/*.zsh`。 |
 | `~/.config/settingzsh/managed.d/10-base.zsh` | `home/dot_config/settingzsh/managed.d/10-base.zsh.tmpl` | Zsh 基線設定：PATH、Powerlevel10k instant prompt、Zinit、預設 plugins、history、completion、`fzf`/`zoxide` 初始化。 |
 | `~/.config/settingzsh/managed.d/40-editor.zsh` | `home/dot_config/settingzsh/managed.d/40-editor.zsh.tmpl` | editor shell integration，目前主要是 `nvm` lazy loading。這個檔案會存在，但 editor 安裝本身預設不會跑。 |
@@ -111,26 +112,26 @@
 
 | 平台 | 腳本 | 條件 | 行為 | 落地 |
 | --- | --- | --- | --- | --- |
-| Linux / macOS | `run_once_before_20-install-fonts.sh.tmpl` | `install_fonts=true` 或 `SETTINGZSH_INSTALL_FONTS=true` | 下載 Maple Mono Nerd Font 並安裝 | Linux：`~/.local/share/fonts/MapleMono/`；macOS：`~/Library/Fonts/` |
+| Linux / macOS | `run_once_before_20-install-fonts.sh.tmpl` | `[data.features].fonts = true` 或 `SETTINGZSH_INSTALL_FONTS=true` | 下載 Maple Mono Nerd Font 並安裝 | Linux：`~/.local/share/fonts/MapleMono/`；macOS：`~/Library/Fonts/` |
 | Windows | `run_once_before_20-install-fonts.ps1.tmpl` | 同上 | 下載字型、拷貝到使用者字型目錄、寫入 registry | `~/AppData/Local/Microsoft/Windows/Fonts/` |
 
 ### `run_onchange_after_30-install-editor`
 
 | 平台 | 腳本 | 條件 | 行為 | 可能落地 |
 | --- | --- | --- | --- | --- |
-| Linux / macOS | `run_onchange_after_30-install-editor.sh.tmpl` | `feature_editor=true` 或 `SETTINGZSH_FEATURE_EDITOR=true` | 安裝 editor 依賴、安裝 `nvm` + Node LTS、merge `.vimrc`、deploy `nvim` config | `~/.nvm/`、`~/.config/nvim/`、`~/.vimrc`、`~/.local/bin/rg`、`~/.local/bin/fd`、`~/.local/bin/lazygit`、`~/.local/`（fallback Neovim） |
+| Linux / macOS | `run_onchange_after_30-install-editor.sh.tmpl` | `[data.features].editor = true` 或 `SETTINGZSH_FEATURE_EDITOR=true` | 安裝 editor 依賴、安裝 `nvm` + Node LTS、merge `.vimrc`、deploy `nvim` config | `~/.nvm/`、`~/.config/nvim/`、`~/.vimrc`、`~/.local/bin/rg`、`~/.local/bin/fd`、`~/.local/bin/lazygit`、`~/.local/`（fallback Neovim） |
 | Windows | `run_onchange_after_30-install-editor.ps1.tmpl` | 同上 | 用 `winget` 安裝 Neovim / NVM / ripgrep / fd / lazygit，複製 `nvim` 設定 | `~/AppData/Local/nvim` |
 
 補充：
 
-- 這個 branch 預設 `feature_editor = false`，所以新機器首次安裝預設只會寫入 `40-editor.zsh`，不會真的安裝 editor toolchain。
+- 這個 branch 預設 `[data.features].editor = false`，所以新機器首次安裝預設只會寫入 `40-editor.zsh`，不會真的安裝 editor toolchain。
 - 若目標位置已有 `~/.config/nvim` 或 Windows 的 `~/AppData/Local/nvim`，腳本會先備份成 `.bak` 再覆蓋。
 
 ### `run_onchange_after_40-install-private-ssh`
 
 | 平台 | 腳本 | 條件 | 行為 | 落地 |
 | --- | --- | --- | --- | --- |
-| Linux / macOS | `run_onchange_after_40-install-private-ssh.sh.tmpl` | `private_ssh_overlay=true` 且 `private_ssh_overlay_repo` 已設定 | 套用 private SSH overlay；必要時用 `sops decrypt` 解密檔案 | `~/.local/share/settingzsh/private-ssh-overlay/`、`~/.ssh/config.d/`、`~/.ssh/`、`~/.ssh/custom-paths/` |
+| Linux / macOS | `run_onchange_after_40-install-private-ssh.sh.tmpl` | `[data.features].private_ssh_overlay = true` 且 `[data.overlay].repo` 已設定 | 套用 private SSH overlay；必要時用 `sops decrypt` 解密檔案 | `~/.local/share/settingzsh/private-ssh-overlay/`、`~/.ssh/config.d/`、`~/.ssh/`、`~/.ssh/custom-paths/` |
 | Windows | `run_onchange_after_40-install-private-ssh.ps1.tmpl` | 同上 | 同樣邏輯，並調整 ACL 權限 | 同上（Windows 路徑語法） |
 
 private SSH 覆蓋層的來源目錄模型如下：

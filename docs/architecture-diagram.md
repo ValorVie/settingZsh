@@ -13,7 +13,7 @@ flowchart TB
         Root["repo root"]
         RootFile[".chezmoiroot -> home/"]
         Source["home/\n來源目錄"]
-        Lib["lib/settingzsh legacy guardrails"]
+        Lib["lib/settingzsh guardrails"]
         Docs["docs/*.md"]
         Root --> RootFile --> Source
         Root --> Lib
@@ -50,12 +50,18 @@ flowchart TB
         PrivateRepo --> OverlayCheckout
     end
 
-    subgraph Legacy["Legacy / Adoption Guardrails"]
+    subgraph Guardrails["settingzsh.cli guardrails"]
         Preflight["preflight"]
         Adopt["adopt"]
+        Doctor["doctor"]
+        LegacyImport["legacy-import\n(draft only)"]
+    end
+
+    subgraph Retired["退役 / deprecated write paths"]
+        Setup["setup"]
+        Update["update"]
         Migrate["migrate"]
         Reconcile["reconcile"]
-        Doctor["doctor"]
     end
 
     Source --> Public
@@ -69,10 +75,11 @@ flowchart TB
     PS --> Profiles
     SSH --> SSHMain
     SSH --> SSHDir
-    Lib --> Legacy
-    Legacy --> Zshrc
-    Legacy --> Init
-    Legacy --> Managed
+    Lib --> Guardrails
+    Lib --> Retired
+    Retired --> Zshrc
+    Retired --> Init
+    Retired --> Managed
 ```
 
 ## 新機器首次安裝流程
@@ -114,5 +121,5 @@ flowchart LR
 
 - `public baseline` 是唯一主入口，負責非機密的公開基線設定。
 - `custom private repo` 只負責 `~/.ssh/**`，不接管 `~/.ssh/config` 主檔。
-- `legacy CLI` 只處理 adoption / migrate / reconcile，不再是新安裝主流程。
+- `settingzsh.cli` 只保留 `preflight`、`adopt`、`doctor`、`legacy-import` 這些 guardrails；`setup` / `update` / `migrate` / `reconcile` 都是退役 / deprecated write paths，不再是新安裝主流程。
 - `~/.zshrc` 只允許一個 `settingZsh bootstrap` 區塊；真正 shell 內容在 `init.zsh` 與 `managed.d/`。

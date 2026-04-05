@@ -6,14 +6,16 @@ from pathlib import Path
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 
-def test_readme_mentions_bootstrap_doctor_migrate_and_private_repo() -> None:
+def test_readme_mentions_chezmoi_guardrails_and_retired_write_paths() -> None:
     readme = (_PROJECT_ROOT / "README.md").read_text(encoding="utf-8")
 
     assert "chezmoi init --apply" in readme
+    assert "chezmoi update" in readme
     assert 'sh -c "$(curl -fsLS get.chezmoi.io)"' in readme
     assert "/usr/bin" in readme
     assert "https://github.com/ValorVie/settingZsh.git" in readme
     assert "--branch codex/settingzsh-chezmoi" in readme
+    assert "唯一主控制面與主寫檔流程" in readme
     assert "fresh install" in readme
     assert "existing machine" in readme
     assert "bootstrap" in readme
@@ -21,15 +23,22 @@ def test_readme_mentions_bootstrap_doctor_migrate_and_private_repo() -> None:
     assert "preflight" in readme
     assert "adopt" in readme
     assert "doctor" in readme
-    assert "migrate" in readme
     assert "legacy-import" in readme
+    assert "settingzsh.cli` 的 `setup`、`update`、`migrate`、`reconcile` 已退役 / deprecated" in readme
+    assert "退役 / deprecated write paths" in readme
     assert ".config/settingzsh/init.zsh" in readme
     assert "managed.d" in readme
     assert "custom private repo" in readme
     assert "examples/valor-ssh-key" in readme
-    assert 'private_ssh_overlay_repo = ""' in readme
+    assert "[data.features]" in readme
+    assert "[data.overlay]" in readme
     assert "private_ssh_overlay = true" in readme
-    assert 'platform_profile = "auto"' in readme
+    assert 'repo = ""' in readme
+    assert 'profile = "auto"' in readme
+    assert "feature_editor" not in readme
+    assert "install_fonts = true" not in readme
+    assert "private_ssh_overlay_repo" not in readme
+    assert "platform_profile" not in readme
     assert ".chezmoiroot" in readme
     assert "home/.chezmoi.toml.tmpl" in readme
     assert "home/.chezmoiexternal.toml.tmpl" in readme
@@ -47,6 +56,7 @@ def test_readme_mentions_bootstrap_doctor_migrate_and_private_repo() -> None:
     assert "故障排查" in readme
     assert "custom private repo 最小接線流程" in readme
     assert "preflight 結果怎麼看" in readme
+    assert "只走 `chezmoi`" in readme
     assert "開啟或關閉 editor feature" in readme
     assert "啟用 private SSH overlay" in readme
     assert "SETTINGZSH_INSTALL_FONTS=false chezmoi apply" in readme
@@ -67,6 +77,10 @@ def test_architecture_doc_explains_dotfiles_chezmoi_and_project_layers() -> None
     assert "custom private repo" in architecture
     assert "doctor" in architecture
     assert "adoption gate" in architecture
+    assert "legacy-import" in architecture
+    assert "settingzsh.cli" in architecture
+    assert "[data.features].editor" in architecture
+    assert "[data.overlay].repo" in architecture
     assert "modify_dot_zshrc" in architecture
     assert ".chezmoiroot" in architecture
     assert "run_*" in architecture
@@ -78,6 +92,8 @@ def test_architecture_doc_explains_dotfiles_chezmoi_and_project_layers() -> None
     assert ".chezmoiexternal.toml.tmpl" in architecture
     assert "run_onchange_after_40-install-private-ssh" in architecture
     assert "~/.ssh/custom-paths" in architecture
+    assert "retired / deprecated write paths" in architecture
+    assert "setup / update / migrate / reconcile" in architecture
 
 
 def test_architecture_diagram_doc_exists_and_has_mermaid_views() -> None:
@@ -91,6 +107,13 @@ def test_architecture_diagram_doc_exists_and_has_mermaid_views() -> None:
     assert ".zshrc" in diagram
     assert "private_ssh_overlay" in diagram
     assert "~/.ssh/custom-paths" in diagram
+    assert "settingzsh.cli guardrails" in diagram
+    assert "退役 / deprecated write paths" in diagram
+    assert "legacy-import" in diagram
+    assert "setup" in diagram
+    assert "update" in diagram
+    assert "migrate" in diagram
+    assert "reconcile" in diagram
 
 
 def test_fresh_install_inventory_doc_lists_flow_targets_and_scripts() -> None:
@@ -102,6 +125,16 @@ def test_fresh_install_inventory_doc_lists_flow_targets_and_scripts() -> None:
     assert "寫入落地" in (_PROJECT_ROOT / "docs" / "terminology.md").read_text(encoding="utf-8")
     assert "基線設定" in inventory
     assert "新機器首次安裝流程" in inventory
+    assert "baseline 更新同樣只走 `chezmoi update`" in inventory
+    assert "settingzsh.cli" not in inventory
+    assert "[data.features].editor" in inventory
+    assert "[data.features].fonts" in inventory
+    assert "[data.overlay].repo" in inventory
+    assert "[data.overlay].profile" in inventory
+    assert "feature_editor" not in inventory
+    assert "install_fonts=true" not in inventory
+    assert "private_ssh_overlay_repo" not in inventory
+    assert "既有 `.zshrc`" not in inventory
     assert "~/.local/share/chezmoi" in inventory
     assert "~/.local/share/chezmoi/home" in inventory
     assert "~/.zshrc" in inventory
@@ -137,7 +170,14 @@ def test_legacy_docs_are_clearly_marked_and_redirect_to_current_flow() -> None:
     assert "pre-chezmoi" in legacy_plan
     assert "source state" in legacy_windows
     assert "chezmoi init --apply" in legacy_windows
-    assert "feature_editor = true" in editor_guide
+    assert "[data.features]" in editor_guide
+    assert "editor = true" in editor_guide
+    assert "preflight" in editor_guide
+    assert "adopt" in editor_guide
+    assert "doctor" in editor_guide
+    assert "feature_editor" not in editor_guide
+    assert "migrate" not in editor_guide
+    assert "reconcile" not in editor_guide
     assert "Windows 目前只部署 Neovim" in editor_guide
 
 
@@ -157,6 +197,8 @@ def test_adoption_and_secret_guides_exist_and_describe_scope() -> None:
     assert "terminology.md" in adoption
     assert "legacy import" in adoption
     assert "needs_adopt" in adoption
+    assert "退役 / deprecated write paths" in adoption
+    assert "不要把它們當成 adoption 的下一步" in adoption
     assert "desktop file secret" in keepassxc
     assert "runtime secret" in keepassxc
     assert "server file secret" in gopass
