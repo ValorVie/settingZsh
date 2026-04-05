@@ -182,10 +182,12 @@ install_nvim_fallback() {
 
   local tmp_dir
   tmp_dir="$(mktemp -d)"
+  local archive_name
   local archive
   local url
 
-  archive="$(select_arch_value "$NVIM_ARCHIVE_X86_64" "$NVIM_ARCHIVE_ARM64")"
+  archive_name="$(select_arch_value "$NVIM_ARCHIVE_X86_64" "$NVIM_ARCHIVE_ARM64")"
+  archive="$tmp_dir/$archive_name"
   url="$(select_arch_value "$NVIM_URL_X86_64" "$NVIM_URL_ARM64")"
 
   if curl -fsSL "$url" -o "$archive" && tar xzf "$archive" -C "$tmp_dir"; then

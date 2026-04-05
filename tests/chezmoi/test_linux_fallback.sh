@@ -39,6 +39,7 @@ require_contains "$EDITOR_SCRIPT" "aarch64|arm64" "editor script missing arm64 a
 require_contains "$EDITOR_SCRIPT" "BurntSushi/ripgrep" "editor script missing ripgrep binary fallback"
 require_contains "$EDITOR_SCRIPT" "sharkdp/fd" "editor script missing fd binary fallback"
 require_contains "$EDITOR_SCRIPT" "nvim-linux-x86_64.tar.gz" "editor script missing neovim binary fallback"
+require_contains "$EDITOR_SCRIPT" 'archive="$tmp_dir/$archive_name"' "editor script missing tmp_dir neovim archive path"
 require_contains "$EDITOR_SCRIPT" "jesseduffield/lazygit" "editor script missing lazygit binary fallback"
 require_contains "$EDITOR_SCRIPT" "RIPGREP_URL_ARM64" "editor script missing arm64 ripgrep url"
 require_contains "$EDITOR_SCRIPT" "FD_URL_ARM64" "editor script missing arm64 fd url"
