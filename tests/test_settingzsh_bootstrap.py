@@ -10,6 +10,7 @@ if str(_LIB_ROOT) not in sys.path:
     sys.path.insert(0, str(_LIB_ROOT))
 
 from settingzsh.bootstrap import (
+    ensure_single_bootstrap_block,
     is_bootstrap_file,
     render_bootstrap_block,
     render_bootstrap_file,
@@ -63,6 +64,23 @@ def test_strip_bootstrap_content_removes_inline_bootstrap_block() -> None:
         "# <<< settingZsh bootstrap <<<\n"
     )
     assert strip_bootstrap_content(content) == "export OLD_VAR=1\n"
+
+
+def test_strip_bootstrap_content_removes_all_duplicate_bootstrap_blocks() -> None:
+    block = render_bootstrap_block()
+    content = f"export TEST=1\n{block}{block}"
+    assert strip_bootstrap_content(content) == "export TEST=1\n"
+
+
+def test_ensure_single_bootstrap_block_dedupes_existing_blocks() -> None:
+    block = render_bootstrap_block()
+    content = f"export TEST=1\n{block}{block}"
+
+    normalized = ensure_single_bootstrap_block(content)
+
+    assert normalized.count("# >>> settingZsh bootstrap >>>") == 1
+    assert normalized.endswith(block)
+    assert normalized.startswith("export TEST=1\n")
 
 
 def test_setup_command_executes_preview_path(tmp_path: Path, monkeypatch) -> None:

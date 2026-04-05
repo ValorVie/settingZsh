@@ -56,6 +56,30 @@ def test_reconcile_writes_bootstrap_and_managed_files(
     assert (home / ".config" / "settingzsh" / "managed.d" / "10-base.zsh").exists()
 
 
+def test_reconcile_dedupes_existing_bootstrap_blocks(
+    tmp_path: Path, monkeypatch
+) -> None:
+    home = tmp_path / "home"
+    home.mkdir(parents=True, exist_ok=True)
+    block = (
+        "# >>> settingZsh bootstrap >>>\n"
+        "[ -f \"$HOME/.config/settingzsh/init.zsh\" ] && source \"$HOME/.config/settingzsh/init.zsh\"\n"
+        "# <<< settingZsh bootstrap <<<\n"
+    )
+    (home / ".zshrc").write_text(
+        "export TEST_VAR=1\n" + block + block,
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr("settingzsh.cli.validate_shell", lambda _: None)
+    result = run_reconcile(target_home=home)
+
+    zshrc = (home / ".zshrc").read_text(encoding="utf-8")
+
+    assert result.status == "reconciled"
+    assert zshrc.count("# >>> settingZsh bootstrap >>>") == 1
+
+
 def test_reconcile_legacy_markers_routes_to_migrate(
     tmp_path: Path, monkeypatch
 ) -> None:

@@ -12,7 +12,7 @@ from settingzsh.shellgen import (
 BOOTSTRAP_BEGIN = "# >>> settingZsh bootstrap >>>"
 BOOTSTRAP_END = "# <<< settingZsh bootstrap <<<"
 _BOOTSTRAP_BLOCK_RE = re.compile(
-    rf"(?ms)^{re.escape(BOOTSTRAP_BEGIN)}\n.*?^{re.escape(BOOTSTRAP_END)}\n?"
+    rf"(?ms)(?:\n)?{re.escape(BOOTSTRAP_BEGIN)}\n.*?{re.escape(BOOTSTRAP_END)}\n?"
 )
 
 
@@ -44,7 +44,20 @@ def render_managed_fragments() -> dict[str, str]:
 def strip_bootstrap_content(content: str) -> str:
     if is_bootstrap_file(content):
         return ""
-    stripped = _BOOTSTRAP_BLOCK_RE.sub("", content, count=1)
+    stripped = _BOOTSTRAP_BLOCK_RE.sub("", content)
     if stripped and not stripped.endswith("\n"):
         stripped += "\n"
     return stripped
+
+
+def ensure_single_bootstrap_block(content: str) -> str:
+    if not content.strip():
+        return render_bootstrap_file()
+    if is_bootstrap_file(content):
+        return render_bootstrap_file()
+    stripped = strip_bootstrap_content(content)
+    if not stripped.strip():
+        return render_bootstrap_block()
+    if not stripped.endswith("\n"):
+        stripped += "\n"
+    return stripped + render_bootstrap_block()

@@ -8,6 +8,8 @@
 
 若你只想知道如何安裝與日常使用，請先看 `README.md`；若你要理解這個 repo 為什麼這樣切分，從這份文件開始比較合適。
 
+如果你想先看圖，再回來讀細節，先看 [architecture-diagram.md](./architecture-diagram.md)。
+
 ## 先講結論
 
 `settingZsh` 現在的角色不是「一套會接管整份 shell 設定的自訂安裝器」，而是：

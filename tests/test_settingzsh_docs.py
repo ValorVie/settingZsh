@@ -35,6 +35,7 @@ def test_readme_mentions_bootstrap_doctor_migrate_and_private_repo() -> None:
     assert "home/.chezmoiexternal.toml.tmpl" in readme
     assert "dot_config/settingzsh/powershell/" in readme
     assert "docs/adoption-guide.md" in readme
+    assert "docs/architecture-diagram.md" in readme
     assert "keepassxc-cli" in readme
     assert "gopass" in readme
     assert "SOPS + age" in readme
@@ -72,6 +73,18 @@ def test_architecture_doc_explains_dotfiles_chezmoi_and_project_layers() -> None
     assert ".chezmoiexternal.toml.tmpl" in architecture
     assert "run_onchange_after_40-install-private-ssh" in architecture
     assert "~/.ssh/custom-paths" in architecture
+
+
+def test_architecture_diagram_doc_exists_and_has_mermaid_views() -> None:
+    diagram = (_PROJECT_ROOT / "docs" / "architecture-diagram.md").read_text(
+        encoding="utf-8"
+    )
+
+    assert "```mermaid" in diagram
+    assert "Fresh Install 流程" in diagram
+    assert ".zshrc" in diagram
+    assert "private_ssh_overlay" in diagram
+    assert "~/.ssh/custom-paths" in diagram
 
 
 def test_legacy_docs_are_clearly_marked_and_redirect_to_current_flow() -> None:

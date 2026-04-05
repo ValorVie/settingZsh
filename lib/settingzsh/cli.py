@@ -7,10 +7,7 @@ from pathlib import Path
 
 from settingzsh.adopt import run_adopt
 from settingzsh.bootstrap import (
-    has_bootstrap_block,
-    is_bootstrap_file,
-    render_bootstrap_file,
-    render_bootstrap_block,
+    ensure_single_bootstrap_block,
     render_init_zsh,
     render_managed_fragments,
 )
@@ -47,20 +44,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def _ensure_bootstrap_block(zshrc_content: str) -> str:
-    if not zshrc_content.strip():
-        return render_bootstrap_file()
-
-    if has_bootstrap_block(zshrc_content) or is_bootstrap_file(zshrc_content):
-        content = zshrc_content
-    else:
-        content = zshrc_content
-        if content and not content.endswith("\n"):
-            content += "\n"
-        content += render_bootstrap_block()
-
-    if content and not content.endswith("\n"):
-        content += "\n"
-    return content
+    return ensure_single_bootstrap_block(zshrc_content)
 
 
 def _write_text(path: Path, content: str) -> bool:

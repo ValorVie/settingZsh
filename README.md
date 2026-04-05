@@ -5,6 +5,7 @@
 延伸文件：
 
 - `docs/architecture.md`：架構、dotfiles / `chezmoi` 原理與專案責任邊界
+- `docs/architecture-diagram.md`：目前設計的 Mermaid 架構圖與 fresh-install 流程圖
 - `docs/adoption-guide.md`：既有機器導入流程、preflight、adopt report 與 legacy import draft
 - `docs/editor-guide.md`：Vim / Neovim 配置與使用方式
 - `docs/secrets/keepassxc-cli.md`：desktop file secret 操作指南

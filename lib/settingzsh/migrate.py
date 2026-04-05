@@ -7,10 +7,12 @@ from pathlib import Path
 from typing import Callable
 
 from settingzsh.bootstrap import (
-    has_bootstrap_block,
+    BOOTSTRAP_BEGIN,
+    is_bootstrap_file,
     render_bootstrap_block,
     render_init_zsh,
     render_managed_fragments,
+    strip_bootstrap_content,
 )
 from settingzsh.reconcile import capture_file_snapshots, restore_file_snapshots, validate_shell
 
@@ -92,12 +94,26 @@ def _extract_settingzsh_blocks(
 
 def _insert_bootstrap_at(content_lines: list[str], insert_index: int | None) -> str:
     content = "".join(content_lines)
-    if has_bootstrap_block(content):
+    if is_bootstrap_file(content):
         return content
+    anchor_index = insert_index
+    for idx, line in enumerate(content_lines):
+        if line.rstrip("\n") == BOOTSTRAP_BEGIN:
+            anchor_index = idx
+            break
 
-    idx = len(content_lines) if insert_index is None else max(0, min(insert_index, len(content_lines)))
+    content = strip_bootstrap_content(content)
+    if not content.strip():
+        return render_bootstrap_block()
+
+    stripped_lines = content.splitlines(keepends=True)
+    idx = (
+        len(stripped_lines)
+        if anchor_index is None
+        else max(0, min(anchor_index, len(stripped_lines)))
+    )
     bootstrap_lines = render_bootstrap_block().splitlines(keepends=True)
-    merged_lines = content_lines[:idx] + bootstrap_lines + content_lines[idx:]
+    merged_lines = stripped_lines[:idx] + bootstrap_lines + stripped_lines[idx:]
     merged = "".join(merged_lines)
     if merged and not merged.endswith("\n"):
         merged += "\n"

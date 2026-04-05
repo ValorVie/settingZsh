@@ -1,23 +1,19 @@
 # chezmoi:modify-template
 {{- $current := .chezmoi.stdin -}}
+{{- $bootstrapFile := "# managed by chezmoi: settingZsh public baseline\nif [ -f \"$HOME/.config/settingzsh/init.zsh\" ]; then\n  source \"$HOME/.config/settingzsh/init.zsh\"\nfi\n" -}}
+{{- $bootstrapBlock := "# >>> settingZsh bootstrap >>>\n[ -f \"$HOME/.config/settingzsh/init.zsh\" ] && source \"$HOME/.config/settingzsh/init.zsh\"\n# <<< settingZsh bootstrap <<<\n" -}}
+{{- $stripped := replaceAllRegex `(?ms)(?:\n)?# >>> settingZsh bootstrap >>>\n.*?# <<< settingZsh bootstrap <<<\n?` `` $current -}}
 {{- if eq (trim $current) "" -}}
-# managed by chezmoi: settingZsh public baseline
-if [ -f "$HOME/.config/settingzsh/init.zsh" ]; then
-  source "$HOME/.config/settingzsh/init.zsh"
-fi
-{{- else if and (contains $current "# >>> settingZsh bootstrap >>>") (contains $current "# <<< settingZsh bootstrap <<<") -}}
-{{- if hasSuffix $current "\n" -}}
-{{ $current -}}
+{{ $bootstrapFile -}}
+{{- else if eq (trim $current) (trim $bootstrapFile) -}}
+{{ $bootstrapFile -}}
+{{- else if eq (trim $stripped) "" -}}
+{{ $bootstrapBlock -}}
 {{- else -}}
-{{ printf "%s\n" $current -}}
-{{- end -}}
+{{- if hasSuffix $stripped "\n" -}}
+{{ $stripped -}}
 {{- else -}}
-{{- if hasSuffix $current "\n" -}}
-{{ $current -}}
-{{- else -}}
-{{ printf "%s\n" $current -}}
+{{ printf "%s\n" $stripped -}}
 {{- end }}
-# >>> settingZsh bootstrap >>>
-[ -f "$HOME/.config/settingzsh/init.zsh" ] && source "$HOME/.config/settingzsh/init.zsh"
-# <<< settingZsh bootstrap <<<
+{{ $bootstrapBlock -}}
 {{- end -}}
