@@ -54,10 +54,12 @@
 若你想讓 public baseline 在第二階段自動拉取這個 private repo，可在目標機器的 `~/.config/chezmoi/chezmoi.toml` 加上：
 
 ```toml
-[data]
+[data.features]
 private_ssh_overlay = true
-private_ssh_overlay_repo = "git@github.com:<you>/<your-private-repo>.git"
-platform_profile = "auto"
+
+[data.overlay]
+repo = "git@github.com:<you>/<your-private-repo>.git"
+profile = "auto"
 ```
 
 若 repo 內是 `SOPS + age` 密文，還要先準備：

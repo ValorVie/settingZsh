@@ -63,6 +63,16 @@ def test_readme_mentions_chezmoi_guardrails_and_retired_write_paths() -> None:
     assert "~/.ssh/custom-paths" in readme
 
 
+def test_private_repo_example_readme_uses_nested_overlay_schema() -> None:
+    example_readme = (_PROJECT_ROOT / "examples" / "valor-ssh-key" / "README.md").read_text(
+        encoding="utf-8"
+    )
+
+    assert "[data.features]\nprivate_ssh_overlay = true\n\n[data.overlay]\nrepo = \"git@github.com:<you>/<your-private-repo>.git\"\nprofile = \"auto\"" in example_readme
+    assert "private_ssh_overlay_repo" not in example_readme
+    assert "platform_profile" not in example_readme
+
+
 def test_architecture_doc_explains_dotfiles_chezmoi_and_project_layers() -> None:
     architecture = (_PROJECT_ROOT / "docs" / "architecture.md").read_text(
         encoding="utf-8"
