@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 """配置檔合併引擎 — 將模板區段合併至目標配置檔，保留使用者自訂內容。
 
-Linux / macOS 的主要 `.zshrc` 流程已改用 `settingzsh.cli` 的
-`doctor` / `migrate` / `reconcile`。本模組目前主要保留給：
+Linux / macOS 的主要 baseline 寫檔流程已改由 `chezmoi` 擔任唯一寫檔引擎；
+`settingzsh.cli` 主要保留 guardrails（`preflight` / `adopt` / `doctor` /
+`legacy-import`），並暫留 `migrate` / `reconcile` 等 deprecated alias
+做提示，不再作為主流程寫檔面。本模組目前主要保留給：
   1. `.vimrc` 合併
   2. 舊版 zsh section 的相容性維護
 
@@ -108,9 +110,11 @@ def _legacy_zsh_guidance(section_id: str, file_type: str) -> str | None:
     """回傳舊版 zsh flow 的提示文字。"""
     if file_type == "zsh" and section_id in LEGACY_ZSH_SECTIONS:
         return (
-            "注意：Linux/macOS 的主要 .zshrc 流程已改用 "
-            "settingzsh.cli 的 doctor / migrate / reconcile；"
-            "config_merge.py 目前主要保留給 .vimrc 與舊版相容流程。"
+            "注意：Linux/macOS 的主要 baseline 寫檔流程已改由 chezmoi 擔任；"
+            "settingzsh.cli 主要保留 guardrails（preflight / adopt / doctor / "
+            "legacy-import），並暫留 migrate / reconcile 等 deprecated alias "
+            "做提示，不再作為主流程寫檔面。config_merge.py 目前主要保留給 .vimrc "
+            "與舊版 zsh section 相容流程。"
         )
     return None
 
@@ -549,7 +553,10 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=(
             "配置檔合併引擎 — 主要保留給 .vimrc 與舊版 zsh section 維護；"
-            "Linux/macOS 的主要 .zshrc 流程請改用 settingzsh.cli。"
+            "Linux/macOS 的主要 baseline 寫檔請改用 chezmoi，"
+            "settingzsh.cli 主要保留 guardrails（preflight / adopt / doctor / "
+            "legacy-import），並暫留 migrate / reconcile 等 deprecated alias "
+            "做提示，不再作為主流程寫檔面。"
         ),
     )
     parser.add_argument(

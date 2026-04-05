@@ -520,11 +520,20 @@ class TestMultipleManagedSections:
 class TestCLIArgumentParsing:
     """CLI 參數解析：缺少必要參數應回傳錯誤。"""
 
-    def test_parser_description_mentions_legacy_zsh_flow(self) -> None:
-        """CLI 說明應標示主要 zsh 流程已改用 settingzsh.cli。"""
+    def test_parser_description_mentions_chezmoi_baseline_and_guardrails(
+        self,
+    ) -> None:
+        """CLI 說明應標示 baseline 由 chezmoi 寫入，CLI 只保留 guardrails。"""
         parser = build_parser()
 
-        assert "settingzsh.cli" in parser.description
+        assert "chezmoi" in parser.description
+        assert "guardrails" in parser.description
+        assert "preflight" in parser.description
+        assert "adopt" in parser.description
+        assert "doctor" in parser.description
+        assert "legacy-import" in parser.description
+        assert "deprecated alias" in parser.description
+        assert "migrate / reconcile" in parser.description
         assert ".vimrc" in parser.description
 
     def test_missing_required_args_exits_with_error(self) -> None:
@@ -571,7 +580,7 @@ class TestCLIArgumentParsing:
     def test_zsh_section_emits_legacy_guidance(
         self, tmp_path: Path, capsys: pytest.CaptureFixture[str]
     ) -> None:
-        """處理舊版 zsh section 時應提示改用 settingzsh.cli。"""
+        """處理舊版 zsh section 時應提示由 chezmoi baseline 搭配 guardrails。"""
         target = tmp_path / ".zshrc"
         template = tmp_path / "tpl"
         _write(template, "export TEST=1\n")
@@ -586,7 +595,13 @@ class TestCLIArgumentParsing:
 
         captured = capsys.readouterr()
         assert exit_code == EXIT_FRESH_INSTALL
-        assert "settingzsh.cli" in captured.err
+        assert "chezmoi" in captured.err
+        assert "guardrails" in captured.err
+        assert "adopt" in captured.err
+        assert "doctor" in captured.err
+        assert "legacy-import" in captured.err
+        assert "deprecated alias" in captured.err
+        assert "migrate / reconcile" in captured.err
 
 
 # ---------------------------------------------------------------------------
