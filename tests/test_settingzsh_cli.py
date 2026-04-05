@@ -4,6 +4,8 @@ import argparse
 import sys
 from pathlib import Path
 
+import pytest
+
 # Ensure `lib/` is importable for pytest runs from repository root.
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
 _LIB_ROOT = _PROJECT_ROOT / "lib"
@@ -11,9 +13,10 @@ if str(_LIB_ROOT) not in sys.path:
     sys.path.insert(0, str(_LIB_ROOT))
 
 from settingzsh.cli import build_parser
-from settingzsh.cli import run_setup
+from settingzsh.cli import main
 from settingzsh.cli import run_reconcile
-from settingzsh.state import PreflightResult
+from settingzsh.cli import run_setup
+from settingzsh.cli import run_update
 
 
 def _extract_subcommands(parser: argparse.ArgumentParser) -> set[str]:
@@ -37,105 +40,58 @@ def test_cli_exposes_expected_commands() -> None:
     } <= _extract_subcommands(parser)
 
 
-def test_reconcile_writes_bootstrap_and_managed_files(
-    tmp_path: Path, monkeypatch
+@pytest.mark.parametrize(
+    ("runner", "expected_guidance"),
+    [
+        (run_setup, "chezmoi init --apply"),
+        (run_update, "chezmoi update"),
+        (run_reconcile, "chezmoi apply"),
+    ],
+)
+def test_deprecated_write_entrypoints_only_emit_guidance(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+    runner,
+    expected_guidance: str,
+) -> None:
+    home = tmp_path / "home"
+    home.mkdir(parents=True, exist_ok=True)
+    before = "export TEST_VAR=1\n"
+    (home / ".zshrc").write_text(before, encoding="utf-8")
+
+    result = runner(target_home=home)
+    captured = capsys.readouterr()
+
+    assert result.status == "deprecated"
+    assert result.modified_files == []
+    assert expected_guidance in captured.err
+    assert (home / ".zshrc").read_text(encoding="utf-8") == before
+    assert not (home / ".config" / "settingzsh").exists()
+
+
+@pytest.mark.parametrize(
+    ("command", "expected_guidance"),
+    [
+        ("setup", "chezmoi init --apply"),
+        ("update", "chezmoi update"),
+        ("reconcile", "chezmoi apply"),
+        ("migrate", "legacy-import"),
+    ],
+)
+def test_cli_main_returns_non_success_for_deprecated_write_commands(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+    command: str,
+    expected_guidance: str,
 ) -> None:
     home = tmp_path / "home"
     home.mkdir(parents=True, exist_ok=True)
     (home / ".zshrc").write_text("export TEST_VAR=1\n", encoding="utf-8")
 
-    monkeypatch.setattr("settingzsh.cli.validate_shell", lambda _: None)
-    result = run_reconcile(target_home=home)
+    exit_code = main([command, "--home", str(home)])
+    captured = capsys.readouterr()
 
-    zshrc = (home / ".zshrc").read_text(encoding="utf-8")
-    init_zsh = (home / ".config" / "settingzsh" / "init.zsh").read_text(encoding="utf-8")
-
-    assert result.status == "reconciled"
-    assert "# >>> settingZsh bootstrap >>>" in zshrc
-    assert "SETTINGZSH_LOADED" in init_zsh
-    assert (home / ".config" / "settingzsh" / "managed.d" / "10-base.zsh").exists()
-
-
-def test_reconcile_dedupes_existing_bootstrap_blocks(
-    tmp_path: Path, monkeypatch
-) -> None:
-    home = tmp_path / "home"
-    home.mkdir(parents=True, exist_ok=True)
-    block = (
-        "# >>> settingZsh bootstrap >>>\n"
-        "[ -f \"$HOME/.config/settingzsh/init.zsh\" ] && source \"$HOME/.config/settingzsh/init.zsh\"\n"
-        "# <<< settingZsh bootstrap <<<\n"
-    )
-    (home / ".zshrc").write_text(
-        "export TEST_VAR=1\n" + block + block,
-        encoding="utf-8",
-    )
-
-    monkeypatch.setattr("settingzsh.cli.validate_shell", lambda _: None)
-    result = run_reconcile(target_home=home)
-
-    zshrc = (home / ".zshrc").read_text(encoding="utf-8")
-
-    assert result.status == "reconciled"
-    assert zshrc.count("# >>> settingZsh bootstrap >>>") == 1
-
-
-def test_reconcile_legacy_markers_routes_to_migrate(
-    tmp_path: Path, monkeypatch
-) -> None:
-    home = tmp_path / "home"
-    home.mkdir(parents=True, exist_ok=True)
-    (home / ".zshrc").write_text(
-        "# === settingZsh:managed:zsh-base:begin ===\nexport A=1\n# === settingZsh:managed:zsh-base:end ===\n",
-        encoding="utf-8",
-    )
-    monkeypatch.setattr("settingzsh.cli.validate_shell", lambda _: None)
-    result = run_reconcile(target_home=home)
-    assert result.status in {"migrated", "reconciled"}
-    assert "# >>> settingZsh bootstrap >>>" in (home / ".zshrc").read_text(encoding="utf-8")
-
-
-def test_reconcile_preserves_existing_managed_fragment(
-    tmp_path: Path, monkeypatch
-) -> None:
-    home = tmp_path / "home"
-    managed_dir = home / ".config" / "settingzsh" / "managed.d"
-    managed_dir.mkdir(parents=True, exist_ok=True)
-    base_fragment = managed_dir / "10-base.zsh"
-    base_fragment.write_text("export KEEP_EXISTING=1\n", encoding="utf-8")
-
-    monkeypatch.setattr("settingzsh.cli.validate_shell", lambda _: None)
-    result = run_reconcile(target_home=home)
-
-    assert result.status == "reconciled"
-    assert base_fragment.read_text(encoding="utf-8") == "export KEEP_EXISTING=1\n"
-    assert str(base_fragment) not in result.modified_files
-
-
-def test_setup_blocks_when_preflight_requires_adopt(
-    tmp_path: Path, monkeypatch
-) -> None:
-    home = tmp_path / "home"
-    home.mkdir(parents=True, exist_ok=True)
-
-    monkeypatch.setattr(
-        "settingzsh.cli.run_preflight",
-        lambda target_home: PreflightResult(
-            status="needs_adopt",
-            issues=["heavy_existing_shell"],
-        ),
-    )
-    monkeypatch.setattr(
-        "settingzsh.cli.run_adopt",
-        lambda target_home: type(
-            "AdoptStub",
-            (),
-            {"status": "reported", "issues": [], "modified_files": ["report.md"]},
-        )(),
-    )
-
-    result = run_setup(target_home=home)
-
-    assert result.status == "needs_adopt"
-    assert result.issues == ["heavy_existing_shell"]
-    assert result.modified_files == ["report.md"]
+    assert exit_code == 1
+    assert expected_guidance in captured.err
+    assert (home / ".zshrc").read_text(encoding="utf-8") == "export TEST_VAR=1\n"
+    assert not (home / ".config" / "settingzsh").exists()

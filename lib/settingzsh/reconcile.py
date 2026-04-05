@@ -14,6 +14,15 @@ _INTERACTIVE_WARNING_SNIPPETS = (
     "can't change option: zle",
 )
 
+__all__ = [
+    "FileSnapshot",
+    "capture_file_snapshots",
+    "restore_file_snapshots",
+    "validate_zsh_syntax",
+    "inspect_shell_validation",
+    "validate_shell",
+]
+
 
 @dataclass(slots=True)
 class FileSnapshot:

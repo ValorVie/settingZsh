@@ -21,39 +21,39 @@ def _prepare_home_with_fixture(tmp_path: Path, fixture_name: str) -> Path:
     return home
 
 
-def test_migrate_rewrites_only_settingzsh_sections(tmp_path: Path) -> None:
+def test_migrate_is_deprecated_no_op_and_does_not_write_files(tmp_path: Path, capsys) -> None:
     home = _prepare_home_with_fixture(tmp_path, "mixed_state.zshrc")
+    original = (home / ".zshrc").read_text(encoding="utf-8")
+    called = False
 
-    result = run_migrate(target_home=home)
-    zshrc = (home / ".zshrc").read_text(encoding="utf-8")
-    base_fragment = (
-        home / ".config" / "settingzsh" / "managed.d" / "10-base.zsh"
-    ).read_text(encoding="utf-8")
-    editor_fragment = (
-        home / ".config" / "settingzsh" / "managed.d" / "40-editor.zsh"
-    ).read_text(encoding="utf-8")
-    legacy_user_fragment = (
-        home / ".config" / "settingzsh" / "managed.d" / "90-legacy-user.zsh"
-    ).read_text(encoding="utf-8")
+    def validator(_: Path) -> None:
+        nonlocal called
+        called = True
+        raise AssertionError("validator should not be called")
 
-    assert result.status == "migrated"
-    assert "# >>> settingZsh bootstrap >>>" in zshrc
-    assert "settingZsh:managed:" not in zshrc
-    assert "Added by Spectra" in zshrc
-    assert zshrc.find("# >>> settingZsh bootstrap >>>") < zshrc.find("Added by Spectra")
-    assert "export PATH=\"$PATH:$HOME/.local/bin\"" in base_fragment
-    assert "lazy_nvm()" in editor_fragment
-    assert "export LC_CTYPE=en_US.UTF-8" in legacy_user_fragment
+    result = run_migrate(target_home=home, validator=validator)
+    captured = capsys.readouterr()
 
-
-def test_migrate_is_noop_for_third_party_only_zshrc(tmp_path: Path) -> None:
-    home = _prepare_home_with_fixture(tmp_path, "third_party_only.zshrc")
-    before = (home / ".zshrc").read_text(encoding="utf-8")
-
-    result = run_migrate(target_home=home)
-    after = (home / ".zshrc").read_text(encoding="utf-8")
-
-    assert result.status == "no-op"
+    assert result.status == "deprecated"
     assert result.modified_files == []
-    assert after == before
+    assert result.managed_sections == []
+    assert result.issues and "legacy-import" in result.issues[0]
+    assert called is False
+    assert (home / ".zshrc").read_text(encoding="utf-8") == original
+    assert not (home / ".config" / "settingzsh").exists()
+    assert "legacy-import" in captured.err
+
+
+def test_migrate_is_no_op_without_existing_zshrc(tmp_path: Path, capsys) -> None:
+    home = tmp_path / "home"
+    home.mkdir(parents=True, exist_ok=True)
+
+    result = run_migrate(target_home=home)
+    captured = capsys.readouterr()
+
+    assert result.status == "deprecated"
+    assert result.modified_files == []
+    assert result.managed_sections == []
+    assert result.issues and "legacy-import" in result.issues[0]
+    assert "legacy-import" in captured.err
     assert not (home / ".config" / "settingzsh").exists()

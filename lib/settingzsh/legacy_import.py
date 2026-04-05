@@ -5,6 +5,8 @@ from pathlib import Path
 from settingzsh.bootstrap import strip_bootstrap_content
 from settingzsh.state import LegacyImportResult
 
+__all__ = ["run_legacy_import"]
+
 
 def run_legacy_import(target_home: Path, *, draft: bool = True) -> LegacyImportResult:
     zshrc_path = target_home / ".zshrc"

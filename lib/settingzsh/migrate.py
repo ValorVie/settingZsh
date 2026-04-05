@@ -1,28 +1,14 @@
 from __future__ import annotations
 
-import re
-import subprocess
+import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable
 
-from settingzsh.bootstrap import (
-    BOOTSTRAP_BEGIN,
-    is_bootstrap_file,
-    render_bootstrap_block,
-    render_init_zsh,
-    render_managed_fragments,
-    strip_bootstrap_content,
-)
-from settingzsh.reconcile import capture_file_snapshots, restore_file_snapshots, validate_shell
 
-_BEGIN_RE = re.compile(
-    r"^\s*#\s*===\s*settingZsh:(managed:[^:]+|user):begin\s*===\s*$"
+_DEPRECATED_GUIDANCE = (
+    "migrate 已停用。請改用 `legacy-import`，並先跑 `preflight` / `adopt` 檢查既有 shell 狀態。"
 )
-_MANAGED_SECTION_FILES = {
-    "zsh-base": "10-base.zsh",
-    "editor": "40-editor.zsh",
-}
 
 
 @dataclass(slots=True)
@@ -30,120 +16,7 @@ class MigrateResult:
     status: str
     managed_sections: list[str] = field(default_factory=list)
     modified_files: list[str] = field(default_factory=list)
-
-
-def _write_text(path: Path, content: str) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(content, encoding="utf-8")
-
-
-def _extract_settingzsh_blocks(
-    zshrc_content: str,
-) -> tuple[list[str], dict[str, str], str, bool, int | None]:
-    lines = zshrc_content.splitlines(keepends=True)
-    kept: list[str] = []
-    managed: dict[str, str] = {}
-    legacy_user = ""
-    removed_any = False
-    first_removed_index: int | None = None
-
-    idx = 0
-    while idx < len(lines):
-        line = lines[idx]
-        begin_match = _BEGIN_RE.match(line.rstrip("\n"))
-        if begin_match is None:
-            kept.append(line)
-            idx += 1
-            continue
-
-        marker_name = begin_match.group(1)
-        end_re = re.compile(
-            rf"^\s*#\s*===\s*settingZsh:{re.escape(marker_name)}:end\s*===\s*$"
-        )
-        j = idx + 1
-        block_lines: list[str] = []
-        found_end = False
-        while j < len(lines):
-            end_line = lines[j]
-            if end_re.match(end_line.rstrip("\n")):
-                found_end = True
-                break
-            block_lines.append(end_line)
-            j += 1
-
-        if not found_end:
-            # Keep unmatched begin marker as-is.
-            kept.append(line)
-            idx += 1
-            continue
-
-        removed_any = True
-        if first_removed_index is None:
-            first_removed_index = len(kept)
-        block_content = "".join(block_lines)
-        if marker_name.startswith("managed:"):
-            section = marker_name.split(":", 1)[1]
-            managed[section] = block_content
-        elif marker_name == "user":
-            legacy_user = block_content
-
-        idx = j + 1
-
-    return kept, managed, legacy_user, removed_any, first_removed_index
-
-
-def _insert_bootstrap_at(content_lines: list[str], insert_index: int | None) -> str:
-    content = "".join(content_lines)
-    if is_bootstrap_file(content):
-        return content
-    anchor_index = insert_index
-    for idx, line in enumerate(content_lines):
-        if line.rstrip("\n") == BOOTSTRAP_BEGIN:
-            anchor_index = idx
-            break
-
-    content = strip_bootstrap_content(content)
-    if not content.strip():
-        return render_bootstrap_block()
-
-    stripped_lines = content.splitlines(keepends=True)
-    idx = (
-        len(stripped_lines)
-        if anchor_index is None
-        else max(0, min(anchor_index, len(stripped_lines)))
-    )
-    bootstrap_lines = render_bootstrap_block().splitlines(keepends=True)
-    merged_lines = stripped_lines[:idx] + bootstrap_lines + stripped_lines[idx:]
-    merged = "".join(merged_lines)
-    if merged and not merged.endswith("\n"):
-        merged += "\n"
-    return merged
-
-
-def _build_write_plan(
-    *,
-    target_home: Path,
-    extracted_managed: dict[str, str],
-    legacy_user: str,
-) -> dict[Path, str]:
-    config_root = target_home / ".config" / "settingzsh"
-    managed_dir = config_root / "managed.d"
-    defaults = render_managed_fragments()
-    write_plan: dict[Path, str] = {}
-
-    for section, filename in _MANAGED_SECTION_FILES.items():
-        fallback = defaults.get(filename, "")
-        content = extracted_managed.get(section, fallback)
-        if content and not content.endswith("\n"):
-            content += "\n"
-        write_plan[managed_dir / filename] = content
-
-    if legacy_user.strip():
-        legacy_content = legacy_user if legacy_user.endswith("\n") else f"{legacy_user}\n"
-        write_plan[managed_dir / "90-legacy-user.zsh"] = legacy_content
-
-    write_plan[config_root / "init.zsh"] = render_init_zsh()
-    return write_plan
+    issues: list[str] = field(default_factory=list)
 
 
 def run_migrate(
@@ -151,54 +24,6 @@ def run_migrate(
     *,
     validator: Callable[[Path], None] | None = None,
 ) -> MigrateResult:
-    zshrc_path = target_home / ".zshrc"
-    zshrc_content = ""
-    if zshrc_path.exists():
-        zshrc_content = zshrc_path.read_text(encoding="utf-8")
-
-    (
-        kept_lines,
-        extracted_managed,
-        legacy_user,
-        removed_any,
-        first_removed_index,
-    ) = _extract_settingzsh_blocks(zshrc_content)
-
-    if not removed_any:
-        return MigrateResult(
-            status="no-op",
-            managed_sections=[],
-            modified_files=[],
-        )
-
-    write_plan = _build_write_plan(
-        target_home=target_home,
-        extracted_managed=extracted_managed,
-        legacy_user=legacy_user,
-    )
-    migrated_zshrc = _insert_bootstrap_at(kept_lines, first_removed_index)
-    write_plan[zshrc_path] = migrated_zshrc
-    snapshots = capture_file_snapshots(list(write_plan))
-    runner = validator or validate_shell
-    modified_files: list[str] = []
-
-    try:
-        for target, content in write_plan.items():
-            _write_text(target, content)
-            modified_files.append(str(target))
-
-        runner(target_home)
-    except (subprocess.CalledProcessError, OSError, RuntimeError):
-        restore_file_snapshots(snapshots, root=target_home)
-        return MigrateResult(
-            status="rolled_back",
-            managed_sections=sorted(extracted_managed.keys()),
-            modified_files=[],
-        )
-
-    status = "migrated" if removed_any else "no-op"
-    return MigrateResult(
-        status=status,
-        managed_sections=sorted(extracted_managed.keys()),
-        modified_files=modified_files,
-    )
+    del target_home, validator
+    print(_DEPRECATED_GUIDANCE, file=sys.stderr)
+    return MigrateResult(status="deprecated", issues=[_DEPRECATED_GUIDANCE])

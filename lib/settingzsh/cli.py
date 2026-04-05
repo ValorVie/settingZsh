@@ -1,21 +1,15 @@
 from __future__ import annotations
 
 import argparse
-import subprocess
+import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
 from settingzsh.adopt import run_adopt
-from settingzsh.bootstrap import (
-    ensure_single_bootstrap_block,
-    render_init_zsh,
-    render_managed_fragments,
-)
 from settingzsh.doctor import run_doctor
 from settingzsh.legacy_import import run_legacy_import
 from settingzsh.migrate import run_migrate
 from settingzsh.preflight import run_preflight
-from settingzsh.reconcile import capture_file_snapshots, restore_file_snapshots, validate_shell
 
 
 @dataclass(slots=True)
@@ -23,6 +17,26 @@ class CommandResult:
     status: str
     modified_files: list[str] = field(default_factory=list)
     issues: list[str] = field(default_factory=list)
+
+
+_DEPRECATED_GUIDANCE: dict[str, str] = {
+    "setup": (
+        "setup 已停用。請改用 `chezmoi init --apply`，"
+        "並在需要檢查既有 shell 時先跑 `preflight`，再視情況用 `adopt` 或 `legacy-import`。"
+    ),
+    "update": (
+        "update 已停用。請改用 `chezmoi update`，"
+        "並在既有 shell 上先用 `preflight`、`adopt` 或 `legacy-import` 收斂。"
+    ),
+    "reconcile": (
+        "reconcile 已停用。請改用 `chezmoi apply`，"
+        "並搭配 `preflight`、`adopt`、`legacy-import` 做 read-only 檢查與舊設定收斂。"
+    ),
+    "migrate": (
+        "migrate 已停用。請改用 `legacy-import`，"
+        "並先跑 `preflight` / `adopt` 檢查既有 shell 狀態。"
+    ),
+}
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -43,35 +57,10 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def _ensure_bootstrap_block(zshrc_content: str) -> str:
-    return ensure_single_bootstrap_block(zshrc_content)
-
-
-def _write_text(path: Path, content: str) -> bool:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    previous = path.read_text(encoding="utf-8") if path.exists() else None
-    if previous == content:
-        return False
-    path.write_text(content, encoding="utf-8")
-    return True
-
-
-def _build_reconcile_write_plan(target_home: Path) -> dict[Path, str]:
-    zshrc_path = target_home / ".zshrc"
-    current_zshrc = zshrc_path.read_text(encoding="utf-8") if zshrc_path.exists() else ""
-
-    write_plan: dict[Path, str] = {
-        zshrc_path: _ensure_bootstrap_block(current_zshrc),
-        target_home / ".config" / "settingzsh" / "init.zsh": render_init_zsh(),
-    }
-    managed_dir = target_home / ".config" / "settingzsh" / "managed.d"
-    for filename, default_content in render_managed_fragments().items():
-        target = managed_dir / filename
-        if target.exists():
-            write_plan[target] = target.read_text(encoding="utf-8")
-        else:
-            write_plan[target] = default_content
-    return write_plan
+def _deprecated_command(command: str) -> CommandResult:
+    message = _DEPRECATED_GUIDANCE[command]
+    print(message, file=sys.stderr)
+    return CommandResult(status="deprecated", issues=[message])
 
 
 def run_reconcile(
@@ -79,64 +68,32 @@ def run_reconcile(
     *,
     validator=None,
 ) -> CommandResult:
-    zshrc_path = target_home / ".zshrc"
-    zshrc_content = zshrc_path.read_text(encoding="utf-8") if zshrc_path.exists() else ""
-    runner = validator or validate_shell
-
-    if "settingZsh:managed:" in zshrc_content:
-        migrate_result = run_migrate(target_home=target_home, validator=runner)
-        return CommandResult(
-            status=migrate_result.status,
-            modified_files=migrate_result.modified_files,
-        )
-
-    write_plan = _build_reconcile_write_plan(target_home)
-    snapshots = capture_file_snapshots(list(write_plan.keys()))
-    modified_files: list[str] = []
-    try:
-        for path, content in write_plan.items():
-            changed = _write_text(path, content)
-            if changed:
-                modified_files.append(str(path))
-        runner(target_home)
-    except (subprocess.CalledProcessError, OSError, RuntimeError):
-        restore_file_snapshots(snapshots, root=target_home)
-        return CommandResult(status="rolled_back", modified_files=[])
-
-    status = "reconciled" if modified_files else "no-op"
-    return CommandResult(status=status, modified_files=modified_files)
+    del target_home, validator
+    return _deprecated_command("reconcile")
 
 
 def run_setup(target_home: Path, *, validator=None) -> CommandResult:
-    preflight = run_preflight(target_home=target_home)
-    if preflight.status == "needs_adopt":
-        adopt_result = run_adopt(target_home=target_home)
-        return CommandResult(
-            status=preflight.status,
-            modified_files=adopt_result.modified_files,
-            issues=preflight.issues,
-        )
-    if preflight.status != "safe":
-        return CommandResult(status=preflight.status, issues=preflight.issues)
-    return run_reconcile(target_home=target_home, validator=validator)
+    del target_home, validator
+    return _deprecated_command("setup")
 
 
 def run_update(target_home: Path, *, validator=None) -> CommandResult:
-    return run_setup(target_home=target_home, validator=validator)
+    del target_home, validator
+    return _deprecated_command("update")
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
     if args.command == "setup":
-        result = run_setup(target_home=args.home)
-        return 0 if result.status != "rolled_back" else 1
+        run_setup(target_home=args.home)
+        return 1
     if args.command == "update":
-        result = run_update(target_home=args.home)
-        return 0 if result.status != "rolled_back" else 1
+        run_update(target_home=args.home)
+        return 1
     if args.command == "reconcile":
-        result = run_reconcile(target_home=args.home)
-        return 0 if result.status != "rolled_back" else 1
+        run_reconcile(target_home=args.home)
+        return 1
     if args.command == "doctor":
         result = run_doctor(target_home=args.home)
         return 0 if result.status == "ok" else 1
@@ -150,6 +107,6 @@ def main(argv: list[str] | None = None) -> int:
         result = run_legacy_import(target_home=args.home, draft=True)
         return 0 if result.status in {"drafted", "no-op"} else 1
     if args.command == "migrate":
-        result = run_migrate(target_home=args.home)
-        return 0 if result.status != "rolled_back" else 1
+        run_migrate(target_home=args.home)
+        return 1
     return 0
