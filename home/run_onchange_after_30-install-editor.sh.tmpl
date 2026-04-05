@@ -3,7 +3,7 @@
 set -euo pipefail
 
 OS="{{ .chezmoi.os }}"
-FEATURE_EDITOR_DEFAULT="{{ if .feature_editor }}true{{ else }}false{{ end }}"
+FEATURE_EDITOR_DEFAULT="{{ if (get . "feature_editor") }}true{{ else }}false{{ end }}"
 FEATURE_EDITOR="${SETTINGZSH_FEATURE_EDITOR:-$FEATURE_EDITOR_DEFAULT}"
 NVM_VERSION="v0.40.1"
 LAZYGIT_VERSION="0.44.1"

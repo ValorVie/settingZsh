@@ -13,19 +13,25 @@ require_file() {
 }
 
 require_file "docs/plans/2026-03-15-settingzsh-capability-parity.md"
-require_file ".chezmoi.toml.tmpl"
-require_file ".chezmoidata/common.yaml"
-require_file ".chezmoidata/macos.yaml"
-require_file ".chezmoidata/linux.yaml"
-require_file ".chezmoidata/windows.yaml"
+require_file ".chezmoiroot"
+require_file "home/.chezmoi.toml.tmpl"
+require_file "home/.chezmoidata/common.yaml"
+require_file "home/.chezmoidata/macos.yaml"
+require_file "home/.chezmoidata/linux.yaml"
+require_file "home/.chezmoidata/windows.yaml"
+
+if ! grep -Fxq "home" .chezmoiroot; then
+    echo ".chezmoiroot missing home source-root marker"
+    exit 1
+fi
 
 if ! rg -qi "chezmoi" README.md; then
     echo "README missing chezmoi entry"
     exit 1
 fi
 
-if ! rg -q "feature_editor|private_ssh_overlay" .chezmoi.toml.tmpl; then
-    echo ".chezmoi.toml.tmpl missing required feature keys"
+if ! rg -q "feature_editor|private_ssh_overlay" home/.chezmoi.toml.tmpl; then
+    echo "home/.chezmoi.toml.tmpl missing required feature keys"
     exit 1
 fi
 

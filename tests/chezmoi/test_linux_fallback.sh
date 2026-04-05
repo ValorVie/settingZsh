@@ -4,8 +4,8 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$ROOT_DIR"
 
-BASE_SCRIPT="run_once_before_10-install-base-packages.sh.tmpl"
-EDITOR_SCRIPT="run_onchange_after_30-install-editor.sh.tmpl"
+BASE_SCRIPT="home/run_once_before_10-install-base-packages.sh.tmpl"
+EDITOR_SCRIPT="home/run_onchange_after_30-install-editor.sh.tmpl"
 
 require_file() {
   local path="$1"

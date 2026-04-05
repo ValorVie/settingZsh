@@ -254,7 +254,7 @@ uv run --directory lib python -m settingzsh.cli preflight
 
 ### Machine data 與 feature flags
 
-這個 repo 目前用到的主要 data key 在 `.chezmoi.toml.tmpl`：
+這個 repo 用 repo root 的 `.chezmoiroot` 把 chezmoi source root 指到 `home/`，所以主要 data key 在 `home/.chezmoi.toml.tmpl`：
 
 ```toml
 [data]
@@ -541,6 +541,15 @@ chezmoi apply
 chezmoi cd
 ```
 
+補充：
+
+- `chezmoi cd` 會進到 source root，也就是 `~/.local/share/chezmoi/home`
+- 如果你要改 repo root 內的 `lib/`、`docs/`、`tests/`，先回到 `chezmoi` clone root：
+
+```bash
+cd "$(dirname "$(chezmoi source-path)")"
+```
+
 ### 常用指令速查
 
 ```bash
@@ -560,10 +569,10 @@ uv run --directory lib python -m settingzsh.cli reconcile
 
 Linux / macOS 還保留 `settingzsh.cli`，專門處理既有機器 adoption 與舊版 `settingZsh` 狀態。
 
-在 repo source state 內執行：
+在 repo root 執行，不是 `home/` source root：
 
 ```bash
-chezmoi cd
+cd "$(dirname "$(chezmoi source-path)")"
 uv run --directory lib python -m settingzsh.cli preflight
 uv run --directory lib python -m settingzsh.cli adopt
 uv run --directory lib python -m settingzsh.cli doctor
@@ -587,18 +596,20 @@ uv run --directory lib python -m settingzsh.cli legacy-import
 
 ```text
 .
-├── .chezmoi.toml.tmpl
-├── .chezmoidata/
+├── .chezmoiroot
 ├── home/
+│   ├── .chezmoi.toml.tmpl
+│   ├── .chezmoiignore.tmpl
+│   ├── .chezmoidata/
 │   ├── modify_dot_zshrc
 │   ├── dot_config/settingzsh/init.zsh.tmpl
 │   ├── dot_config/settingzsh/managed.d/
 │   ├── dot_config/settingzsh/powershell/
 │   ├── Documents/PowerShell/
 │   ├── Documents/WindowsPowerShell/
-│   └── private_dot_ssh/
-├── run_once_before_*.tmpl
-├── run_onchange_after_*.tmpl
+│   ├── private_dot_ssh/
+│   ├── run_once_before_*.tmpl
+│   └── run_onchange_after_*.tmpl
 ├── lib/settingzsh/
 ├── nvim/
 ├── vim/

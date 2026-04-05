@@ -22,6 +22,12 @@ require_contains() {
     fi
 }
 
+require_file ".chezmoiroot"
+require_file "home/.chezmoi.toml.tmpl"
+require_file "home/.chezmoidata/common.yaml"
+require_file "home/.chezmoidata/linux.yaml"
+require_file "home/.chezmoidata/macos.yaml"
+require_file "home/.chezmoidata/windows.yaml"
 require_file "home/modify_dot_zshrc"
 require_file "home/private_dot_ssh/config.tmpl"
 require_file "home/private_dot_ssh/config.d/10-common.conf.tmpl"
@@ -29,6 +35,13 @@ require_file "home/dot_config/settingzsh/powershell/public-baseline.ps1.tmpl"
 require_file "home/Documents/PowerShell/Microsoft.PowerShell_profile.ps1.tmpl"
 require_file "home/Documents/WindowsPowerShell/Microsoft.PowerShell_profile.ps1.tmpl"
 
+if ! grep -Fxq "home" .chezmoiroot; then
+    echo ".chezmoiroot missing home source-root marker"
+    exit 1
+fi
+
+require_contains "home/.chezmoi.toml.tmpl" "feature_editor = false" "chezmoi baseline config missing feature_editor default"
+require_contains "home/.chezmoidata/common.yaml" "features:" "common chezmoidata missing features block"
 require_contains "home/modify_dot_zshrc" ".config/settingzsh/init.zsh" "zsh bootstrap missing init source"
 require_contains "home/private_dot_ssh/config.tmpl" "Host *" "ssh main config missing Host *"
 require_contains "home/private_dot_ssh/config.tmpl" "Include ~/.ssh/config.d/*.conf" "ssh main config missing Include model"

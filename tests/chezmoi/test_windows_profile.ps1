@@ -28,7 +28,7 @@ $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
 $baseline = Join-Path $repoRoot "home/dot_config/settingzsh/powershell/public-baseline.ps1.tmpl"
 $profileV7 = Join-Path $repoRoot "home/Documents/PowerShell/Microsoft.PowerShell_profile.ps1.tmpl"
 $profileV5 = Join-Path $repoRoot "home/Documents/WindowsPowerShell/Microsoft.PowerShell_profile.ps1.tmpl"
-$baseInstall = Join-Path $repoRoot "run_once_before_10-install-base-packages.ps1.tmpl"
+$baseInstall = Join-Path $repoRoot "home/run_once_before_10-install-base-packages.ps1.tmpl"
 
 Assert-FileExists -Path $baseline
 Assert-FileExists -Path $profileV7

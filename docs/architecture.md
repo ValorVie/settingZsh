@@ -55,8 +55,9 @@ dotfiles 工具通常擅長的是「檔案狀態管理」，不一定擅長處�
 ### 1. Source state 與 target state
 
 - `source state`
-  - 也就是 repo 內的檔案結構與模板
-  - 例如 `home/modify_dot_zshrc`
+  - 也就是 chezmoi 實際讀取的檔案結構與模板
+  - 這個 repo 透過 repo root 的 `.chezmoiroot` 把 source root 固定在 `home/`
+  - 例如 `modify_dot_zshrc`
 - `target state`
   - 真正落在使用者家目錄裡的檔案
   - 例如 `~/.zshrc`
@@ -75,8 +76,8 @@ dotfiles 工具通常擅長的是「檔案狀態管理」，不一定擅長處�
 
 在這個 repo 裡，這些設定主要來自：
 
-- `.chezmoi.toml.tmpl`
-- `.chezmoidata/`
+- `home/.chezmoi.toml.tmpl`
+- `home/.chezmoidata/`
 - 使用者本機的 `~/.config/chezmoi/chezmoi.toml`
 
 ### 3. Target naming 規則
@@ -121,13 +122,16 @@ dotfiles 工具通常擅長的是「檔案狀態管理」，不一定擅長處�
 ### 一張圖看分層
 
 ```text
-repo source state
-├── public baseline
-│   ├── shell / profile templates
-│   ├── .ssh/config 主檔與共用 config.d
-│   ├── run_* 安裝腳本
-│   ├── nvim / vim baseline
-│   └── machine data / feature flags
+repo root
+├── .chezmoiroot -> home
+├── home/                     # chezmoi source state
+│   ├── public baseline
+│   │   ├── shell / profile templates
+│   │   ├── .ssh/config 主檔與共用 config.d
+│   │   ├── run_* 安裝腳本
+│   │   ├── nvim / vim baseline
+│   │   └── machine data / feature flags
+│   └── adoption target templates
 └── adoption guardrails
     ├── preflight / adopt / doctor
     └── migrate / reconcile / legacy import draft
@@ -207,7 +211,7 @@ if [ -f "$HOME/.config/settingzsh/init.zsh" ]; then
 fi
 ```
 
-實際 source state 不是 `dot_zshrc.tmpl`，而是 `home/modify_dot_zshrc`。它會做兩件事：
+實際 source state 不是 `dot_zshrc.tmpl`，而是 `modify_dot_zshrc`。它會做兩件事：
 
 - 檔案不存在時建立極小 bootstrap
 - 檔案已存在時只插入 `settingZsh bootstrap` 區塊

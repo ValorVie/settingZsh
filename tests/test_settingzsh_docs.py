@@ -28,6 +28,8 @@ def test_readme_mentions_bootstrap_doctor_migrate_and_private_repo() -> None:
     assert "custom private repo" in readme
     assert "examples/valor-ssh-key" in readme
     assert 'private_ssh_overlay_repo = ""' in readme
+    assert ".chezmoiroot" in readme
+    assert "home/.chezmoi.toml.tmpl" in readme
     assert "dot_config/settingzsh/powershell/" in readme
     assert "docs/adoption-guide.md" in readme
     assert "keepassxc-cli" in readme
@@ -54,6 +56,7 @@ def test_architecture_doc_explains_dotfiles_chezmoi_and_project_layers() -> None
     assert "doctor" in architecture
     assert "adoption gate" in architecture
     assert "modify_dot_zshrc" in architecture
+    assert ".chezmoiroot" in architecture
     assert "run_*" in architecture
     assert "nvim / vim baseline" in architecture
     assert "SOPS + age" in architecture
