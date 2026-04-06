@@ -6,8 +6,10 @@ import re
 import shlex
 import shutil
 import sys
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime
+from functools import lru_cache
 from pathlib import Path
 from typing import Literal
 
@@ -59,13 +61,22 @@ _SSH_PATHS = (
     Path(".ssh/config.d/10-common.conf"),
 )
 
-_PS_BRIDGE_RE = re.compile(
-    r"(?ms)(?:\n)?# managed by chezmoi: .*profile target\n"
-    r"\$baselinePath = Join-Path \$HOME "
-    r'"\.config/settingzsh/powershell/public-baseline\.ps1"\n'
-    r"if \(Test-Path \$baselinePath\) \{\n"
-    r"\s*\. \$baselinePath\n"
-    r"\}\n?"
+_PS_BRIDGE_TEMPLATE_PATHS = (
+    Path("home/Documents/PowerShell/Microsoft.PowerShell_profile.ps1.tmpl"),
+    Path("home/Documents/WindowsPowerShell/Microsoft.PowerShell_profile.ps1.tmpl"),
+)
+
+_PS_BRIDGE_FALLBACKS = (
+    "# managed by chezmoi: PowerShell 7+ profile target\n"
+    '$baselinePath = Join-Path $HOME ".config/settingzsh/powershell/public-baseline.ps1"\n'
+    "if (Test-Path $baselinePath) {\n"
+    "    . $baselinePath\n"
+    "}\n",
+    "# managed by chezmoi: Windows PowerShell 5.1 profile target\n"
+    '$baselinePath = Join-Path $HOME ".config/settingzsh/powershell/public-baseline.ps1"\n'
+    "if (Test-Path $baselinePath) {\n"
+    "    . $baselinePath\n"
+    "}\n",
 )
 
 _SSH_CONFIG_FALLBACK = (
@@ -86,6 +97,8 @@ _SSH_COMMON_FALLBACK = (
     "# e.g. ~/.ssh/config.d/90-private.conf.\n"
 )
 
+_UTF8_BOM = "\ufeff"
+
 
 @dataclass(slots=True)
 class UninstallAction:
@@ -101,16 +114,31 @@ class UninstallPlan:
 
 
 def strip_settingzsh_bootstrap(content: str) -> str:
-    return strip_bootstrap_content(content)
+    bom, text = _split_utf8_bom(content)
+    stripped = strip_bootstrap_content(_normalize_newlines(text))
+    if stripped and bom:
+        return bom + stripped
+    return stripped
+
+
+def _is_settingzsh_bootstrap_file(content: str) -> bool:
+    _, text = _split_utf8_bom(content)
+    return is_bootstrap_file(_normalize_newlines(text))
 
 
 def is_settingzsh_powershell_bridge(content: str) -> bool:
-    return _PS_BRIDGE_RE.fullmatch(_normalize_newlines(content).strip()) is not None
+    _, text = _split_utf8_bom(content)
+    return _normalize_newlines(text).strip() in _powershell_bridge_variants()
 
 
 def strip_settingzsh_powershell_bridge(content: str) -> str:
-    normalized = _normalize_newlines(content)
-    stripped = _PS_BRIDGE_RE.sub("", normalized)
+    bom, text = _split_utf8_bom(content)
+    normalized = _normalize_newlines(text)
+    stripped = normalized
+    for pattern in _powershell_bridge_patterns():
+        stripped = pattern.sub("", stripped)
+    if stripped and bom:
+        stripped = bom + stripped
     if stripped and not stripped.endswith("\n"):
         stripped += "\n"
     return stripped
@@ -134,29 +162,26 @@ def collect_uninstall_plan(home: Path) -> UninstallPlan:
 
     zshrc = home / ".zshrc"
     _ensure_within_home(zshrc, home)
-    if zshrc.exists():
-        content = zshrc.read_text(encoding="utf-8")
-        if is_bootstrap_file(content):
-            actions.append(UninstallAction(kind="remove-file", path=zshrc, detail="pure-bootstrap"))
-        else:
-            stripped = strip_settingzsh_bootstrap(content)
-            if stripped != content:
-                kind = "remove-file" if not stripped.strip() else "rewrite-file"
-                actions.append(UninstallAction(kind=kind, path=zshrc, detail="strip-bootstrap"))
+    _append_rewrite_action(
+        actions,
+        zshrc,
+        is_pure=_is_settingzsh_bootstrap_file,
+        strip=strip_settingzsh_bootstrap,
+        pure_detail="pure-bootstrap",
+        strip_detail="strip-bootstrap",
+    )
 
     for relative in _PS_PROFILE_PATHS:
         path = home / relative
         _ensure_within_home(path, home)
-        if not path.exists():
-            continue
-        content = path.read_text(encoding="utf-8")
-        if is_settingzsh_powershell_bridge(content):
-            actions.append(UninstallAction(kind="remove-file", path=path, detail="pure-bridge"))
-            continue
-        stripped = strip_settingzsh_powershell_bridge(content)
-        if stripped != content:
-            kind = "remove-file" if not stripped.strip() else "rewrite-file"
-            actions.append(UninstallAction(kind=kind, path=path, detail="strip-bridge"))
+        _append_rewrite_action(
+            actions,
+            path,
+            is_pure=is_settingzsh_powershell_bridge,
+            strip=strip_settingzsh_powershell_bridge,
+            pure_detail="pure-bridge",
+            strip_detail="strip-bridge",
+        )
 
     for relative in _SSH_PATHS:
         path = home / relative
@@ -199,7 +224,7 @@ def execute_uninstall(plan: UninstallPlan, *, backup_root: Path) -> Path:
             backup_path.parent.mkdir(parents=True, exist_ok=True)
             if not action.path.exists():
                 raise FileNotFoundError(action.path)
-            action.path.rename(backup_path)
+            shutil.move(str(action.path), str(backup_path))
             casted = manifest["owned"]  # type: ignore[assignment]
             casted.append({"path": str(action.path), "backup": str(backup_path.relative_to(backup_dir))})
             continue
@@ -209,8 +234,9 @@ def execute_uninstall(plan: UninstallPlan, *, backup_root: Path) -> Path:
             backup_path.parent.mkdir(parents=True, exist_ok=True)
             if not action.path.exists():
                 raise FileNotFoundError(action.path)
-            original = action.path.read_text(encoding="utf-8")
-            backup_path.write_text(original, encoding="utf-8")
+            original_bytes = action.path.read_bytes()
+            original = original_bytes.decode("utf-8")
+            backup_path.write_bytes(original_bytes)
             if action.kind == "remove-file":
                 action.path.unlink()
             else:
@@ -336,13 +362,41 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     backup_dir = execute_uninstall(plan, backup_root=args.backup_root)
-    print(render_uninstall_report(plan, mode="execute", backup_id=backup_dir.name))
+    print(
+        render_uninstall_report(
+            plan,
+            mode="execute",
+            backup_id=backup_dir.name,
+            backup_root=args.backup_root,
+        )
+    )
     print(f"backup_id: {backup_dir.name}")
     return 0
 
 
 def _resolve_home(home: Path) -> Path:
     return home.expanduser().resolve()
+
+
+def _append_rewrite_action(
+    actions: list[UninstallAction],
+    path: Path,
+    *,
+    is_pure: Callable[[str], bool],
+    strip: Callable[[str], str],
+    pure_detail: str,
+    strip_detail: str,
+) -> None:
+    if not path.exists():
+        return
+    content = path.read_text(encoding="utf-8")
+    if is_pure(content):
+        actions.append(UninstallAction(kind="remove-file", path=path, detail=pure_detail))
+        return
+    stripped = strip(content)
+    if stripped != content:
+        kind = "remove-file" if not stripped.strip() else "rewrite-file"
+        actions.append(UninstallAction(kind=kind, path=path, detail=strip_detail))
 
 
 def _ensure_within_home(path: Path, home: Path) -> None:
@@ -500,11 +554,33 @@ def _normalize_newlines(content: str) -> str:
     return content.replace("\r\n", "\n")
 
 
+def _split_utf8_bom(content: str) -> tuple[str, str]:
+    if content.startswith(_UTF8_BOM):
+        return _UTF8_BOM, content.removeprefix(_UTF8_BOM)
+    return "", content
+
+
 def _load_repo_template(relative_path: Path, *, fallback: str) -> str:
     template_path = _PROJECT_ROOT / relative_path
     if not template_path.is_file():
         return fallback
     return template_path.read_text(encoding="utf-8")
+
+
+@lru_cache(maxsize=1)
+def _powershell_bridge_variants() -> tuple[str, ...]:
+    variants = []
+    for path, fallback in zip(_PS_BRIDGE_TEMPLATE_PATHS, _PS_BRIDGE_FALLBACKS, strict=True):
+        variants.append(_normalize_newlines(_load_repo_template(path, fallback=fallback)).strip())
+    return tuple(variants)
+
+
+@lru_cache(maxsize=1)
+def _powershell_bridge_patterns() -> tuple[re.Pattern[str], ...]:
+    return tuple(
+        re.compile(rf"(?ms)(?:\n)?{re.escape(bridge)}\n?")
+        for bridge in _powershell_bridge_variants()
+    )
 
 
 if __name__ == "__main__":

@@ -22,39 +22,13 @@ export TEST_VAR=1
 # <<< settingZsh bootstrap <<<
 EOF
 
-cat > "$home/Documents/PowerShell/Microsoft.PowerShell_profile.ps1" <<'EOF'
-# managed by chezmoi: PowerShell 7+ profile target
-$baselinePath = Join-Path $HOME ".config/settingzsh/powershell/public-baseline.ps1"
-if (Test-Path $baselinePath) {
-    . $baselinePath
-}
-EOF
-
-cat > "$home/Documents/WindowsPowerShell/Microsoft.PowerShell_profile.ps1" <<'EOF'
-# managed by chezmoi: Windows PowerShell 5.1 profile target
-$baselinePath = Join-Path $HOME ".config/settingzsh/powershell/public-baseline.ps1"
-if (Test-Path $baselinePath) {
-    . $baselinePath
-}
-EOF
-
-cat > "$home/.ssh/config" <<'EOF'
-# managed by chezmoi: settingZsh public baseline
-Host *
-  ServerAliveInterval 60
-  ServerAliveCountMax 3
-  AddKeysToAgent yes
-
-Include ~/.ssh/config.d/*.conf
-EOF
-
-cat > "$home/.ssh/config.d/10-common.conf" <<'EOF'
-# managed by chezmoi: shared safe SSH baseline
-#
-# Add portable defaults that are safe across machines.
-# Keep vendor-specific or private host entries in private overlay files,
-# e.g. ~/.ssh/config.d/90-private.conf.
-EOF
+cp "$ROOT_DIR/home/Documents/PowerShell/Microsoft.PowerShell_profile.ps1.tmpl" \
+  "$home/Documents/PowerShell/Microsoft.PowerShell_profile.ps1"
+cp "$ROOT_DIR/home/Documents/WindowsPowerShell/Microsoft.PowerShell_profile.ps1.tmpl" \
+  "$home/Documents/WindowsPowerShell/Microsoft.PowerShell_profile.ps1"
+cp "$ROOT_DIR/home/private_dot_ssh/config.tmpl" "$home/.ssh/config"
+cp "$ROOT_DIR/home/private_dot_ssh/config.d/10-common.conf.tmpl" \
+  "$home/.ssh/config.d/10-common.conf"
 
 dry_run_output="$("$ROOT_DIR/scripts/uninstall-settingzsh.sh" --home "$home" --backup-root "$backup_root" --dry-run)"
 printf '%s\n' "$dry_run_output" | rg -F ".local/share/chezmoi"
@@ -65,6 +39,8 @@ printf '%s\n' "$dry_run_output" | rg -F "PowerShell"
 
 execute_output="$("$ROOT_DIR/scripts/uninstall-settingzsh.sh" --home "$home" --backup-root "$backup_root" --execute)"
 printf '%s\n' "$execute_output" | rg -F "backup_id:"
+printf '%s\n' "$execute_output" | rg -F -- "--home $home"
+printf '%s\n' "$execute_output" | rg -F -- "--backup-root $backup_root"
 backup_id="$(printf '%s\n' "$execute_output" | rg -o 'backup_id: [^[:space:]]+' | awk '{print $2}' | tail -n 1)"
 [ -n "$backup_id" ]
 [ ! -d "$home/.local/share/chezmoi" ]

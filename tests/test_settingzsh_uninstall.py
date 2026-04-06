@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 import json
-import subprocess
+import os
+import shutil
 import sys
 from pathlib import Path
+
+import pytest
 
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
 _LIB_ROOT = _PROJECT_ROOT / "lib"
@@ -11,6 +14,7 @@ if str(_LIB_ROOT) not in sys.path:
     sys.path.insert(0, str(_LIB_ROOT))
 
 from settingzsh.bootstrap import render_bootstrap_file
+from settingzsh.bootstrap import render_bootstrap_block
 from settingzsh.uninstall import collect_uninstall_plan
 from settingzsh.uninstall import execute_uninstall
 from settingzsh.uninstall import is_settingzsh_powershell_bridge
@@ -61,19 +65,11 @@ def test_collect_uninstall_plan_classifies_owned_shared_and_rewrite_actions(
     _write(home / ".zshrc", render_bootstrap_file())
     _write(
         home / "Documents" / "PowerShell" / "Microsoft.PowerShell_profile.ps1",
-        "# managed by chezmoi: PowerShell 7+ profile target\n"
-        '$baselinePath = Join-Path $HOME ".config/settingzsh/powershell/public-baseline.ps1"\n'
-        "if (Test-Path $baselinePath) {\n"
-        "    . $baselinePath\n"
-        "}\n",
+        _template("home/Documents/PowerShell/Microsoft.PowerShell_profile.ps1.tmpl"),
     )
     _write(
         home / "Documents" / "WindowsPowerShell" / "Microsoft.PowerShell_profile.ps1",
-        "# managed by chezmoi: Windows PowerShell 5.1 profile target\n"
-        '$baselinePath = Join-Path $HOME ".config/settingzsh/powershell/public-baseline.ps1"\n'
-        "if (Test-Path $baselinePath) {\n"
-        "    . $baselinePath\n"
-        "}\n",
+        _template("home/Documents/WindowsPowerShell/Microsoft.PowerShell_profile.ps1.tmpl"),
     )
     _write(
         home / ".ssh" / "config",
@@ -104,19 +100,12 @@ def test_collect_uninstall_plan_strips_inline_bootstrap_and_leaves_user_content(
     home.mkdir(parents=True, exist_ok=True)
     _write(
         home / ".zshrc",
-        "export TEST_VAR=1\n"
-        "# >>> settingZsh bootstrap >>>\n"
-        '[ -f "$HOME/.config/settingzsh/init.zsh" ] && source "$HOME/.config/settingzsh/init.zsh"\n'
-        "# <<< settingZsh bootstrap <<<\n",
+        "export TEST_VAR=1\n" + render_bootstrap_block(),
     )
     _write(
         home / "Documents" / "PowerShell" / "Microsoft.PowerShell_profile.ps1",
         "Set-StrictMode -Version Latest\n"
-        "# managed by chezmoi: PowerShell 7+ profile target\n"
-        '$baselinePath = Join-Path $HOME ".config/settingzsh/powershell/public-baseline.ps1"\n'
-        "if (Test-Path $baselinePath) {\n"
-        "    . $baselinePath\n"
-        "}\n",
+        + _template("home/Documents/PowerShell/Microsoft.PowerShell_profile.ps1.tmpl"),
     )
 
     plan = collect_uninstall_plan(home)
@@ -124,6 +113,21 @@ def test_collect_uninstall_plan_strips_inline_bootstrap_and_leaves_user_content(
     assert _action(plan, home / ".zshrc").kind == "rewrite-file"
     assert _action(plan, home / "Documents" / "PowerShell" / "Microsoft.PowerShell_profile.ps1").kind == "rewrite-file"
     assert strip_settingzsh_bootstrap((home / ".zshrc").read_text(encoding="utf-8")).startswith("export TEST_VAR=1")
+
+
+def test_execute_uninstall_rewrites_crlf_inline_bootstrap_zshrc(tmp_path: Path) -> None:
+    home = tmp_path / "home"
+    backup_root = tmp_path / "backups"
+    (home / ".config" / "settingzsh").mkdir(parents=True, exist_ok=True)
+    zshrc = home / ".zshrc"
+    zshrc.write_bytes(("export TEST_VAR=1\r\n" + render_bootstrap_block().replace("\n", "\r\n")).encode("utf-8"))
+
+    plan = collect_uninstall_plan(home)
+    assert _action(plan, zshrc).kind == "rewrite-file"
+
+    execute_uninstall(plan, backup_root=backup_root)
+
+    assert zshrc.read_text(encoding="utf-8") == "export TEST_VAR=1\n"
 
 
 def test_collect_uninstall_plan_rejects_paths_outside_home(tmp_path: Path) -> None:
@@ -151,19 +155,12 @@ def test_execute_uninstall_writes_manifest_report_and_restore_round_trips(
     owned_dir.mkdir(parents=True, exist_ok=True)
     shared_dir.mkdir(parents=True, exist_ok=True)
     original_zshrc = (
-        "export TEST_VAR=1\n"
-        "# >>> settingZsh bootstrap >>>\n"
-        '[ -f "$HOME/.config/settingzsh/init.zsh" ] && source "$HOME/.config/settingzsh/init.zsh"\n'
-        "# <<< settingZsh bootstrap <<<\n"
+        "export TEST_VAR=1\n" + render_bootstrap_block()
     )
     _write(home / ".zshrc", original_zshrc)
     _write(
         home / "Documents" / "PowerShell" / "Microsoft.PowerShell_profile.ps1",
-        "# managed by chezmoi: PowerShell 7+ profile target\n"
-        '$baselinePath = Join-Path $HOME ".config/settingzsh/powershell/public-baseline.ps1"\n'
-        "if (Test-Path $baselinePath) {\n"
-        "    . $baselinePath\n"
-        "}\n",
+        _template("home/Documents/PowerShell/Microsoft.PowerShell_profile.ps1.tmpl"),
     )
     _write(home / ".ssh" / "config", _template("home/private_dot_ssh/config.tmpl"))
     _write(
@@ -211,13 +208,7 @@ def test_execute_uninstall_writes_manifest_report_and_restore_round_trips(
 
 
 def test_is_settingzsh_powershell_bridge_detects_pure_bridge_and_rejects_mixed_content() -> None:
-    bridge = (
-        "# managed by chezmoi: PowerShell 7+ profile target\n"
-        '$baselinePath = Join-Path $HOME ".config/settingzsh/powershell/public-baseline.ps1"\n'
-        "if (Test-Path $baselinePath) {\n"
-        "    . $baselinePath\n"
-        "}\n"
-    )
+    bridge = _template("home/Documents/PowerShell/Microsoft.PowerShell_profile.ps1.tmpl")
     mixed = "Set-StrictMode -Version Latest\n" + bridge
 
     assert is_settingzsh_powershell_bridge(bridge) is True
@@ -270,10 +261,7 @@ def test_restore_uninstall_snapshots_existing_target_before_overwrite(tmp_path: 
     backup_root = tmp_path / "backups"
     (home / ".config" / "settingzsh").mkdir(parents=True, exist_ok=True)
     original_zshrc = (
-        "export TEST_VAR=1\n"
-        "# >>> settingZsh bootstrap >>>\n"
-        '[ -f "$HOME/.config/settingzsh/init.zsh" ] && source "$HOME/.config/settingzsh/init.zsh"\n'
-        "# <<< settingZsh bootstrap <<<\n"
+        "export TEST_VAR=1\n" + render_bootstrap_block()
     )
     _write(home / ".zshrc", original_zshrc)
 
@@ -286,6 +274,29 @@ def test_restore_uninstall_snapshots_existing_target_before_overwrite(tmp_path: 
     assert overwrite_backup_dir is not None
     assert (overwrite_backup_dir / ".zshrc").read_text(encoding="utf-8") == "post-uninstall change\n"
     assert (home / ".zshrc").read_text(encoding="utf-8") == original_zshrc
+
+
+def test_execute_uninstall_supports_cross_device_backup_root_when_available(tmp_path: Path) -> None:
+    home = tmp_path / "home"
+    owned_dir = home / ".config" / "settingzsh"
+    owned_dir.mkdir(parents=True, exist_ok=True)
+    _write(home / ".zshrc", render_bootstrap_file())
+
+    backup_root = Path("/dev/shm") / f"settingzsh-uninstall-{os.getpid()}"
+    if not Path("/dev/shm").exists():
+        pytest.skip("/dev/shm unavailable")
+    if home.stat().st_dev == Path("/dev/shm").stat().st_dev:
+        pytest.skip("cross-device backup root unavailable in this environment")
+
+    backup_root.mkdir(parents=True, exist_ok=True)
+    try:
+        plan = collect_uninstall_plan(home)
+        backup_dir = execute_uninstall(plan, backup_root=backup_root)
+        assert backup_dir.is_dir()
+        assert not owned_dir.exists()
+    finally:
+        if backup_root.exists():
+            shutil.rmtree(backup_root)
 
 
 def test_render_uninstall_report_includes_restore_command_with_explicit_paths(tmp_path: Path) -> None:
@@ -302,3 +313,41 @@ def test_render_uninstall_report_includes_restore_command_with_explicit_paths(tm
 
     assert f"--home {home}" in report
     assert f"--backup-root {backup_root}" in report
+
+
+def test_rewritten_backup_restore_preserves_crlf_bytes(tmp_path: Path) -> None:
+    home = tmp_path / "home"
+    backup_root = tmp_path / "backups"
+    (home / ".config" / "settingzsh").mkdir(parents=True, exist_ok=True)
+    profile = home / "Documents" / "PowerShell" / "Microsoft.PowerShell_profile.ps1"
+    profile.parent.mkdir(parents=True, exist_ok=True)
+    original = _template("home/Documents/PowerShell/Microsoft.PowerShell_profile.ps1.tmpl").replace(
+        "\n",
+        "\r\n",
+    ).encode("utf-8")
+    profile.write_bytes(original)
+
+    plan = collect_uninstall_plan(home)
+    backup_dir = execute_uninstall(plan, backup_root=backup_root)
+    restore_uninstall(home=home, backup_root=backup_root, backup_id=backup_dir.name)
+
+    assert profile.read_bytes() == original
+
+
+def test_collect_uninstall_plan_treats_bom_prefixed_managed_files_as_owned_content(
+    tmp_path: Path,
+) -> None:
+    home = tmp_path / "home"
+    home.mkdir(parents=True, exist_ok=True)
+    zshrc = home / ".zshrc"
+    ps_profile = home / "Documents" / "PowerShell" / "Microsoft.PowerShell_profile.ps1"
+    zshrc.write_text("\ufeff" + render_bootstrap_file(), encoding="utf-8")
+    _write(
+        ps_profile,
+        "\ufeff" + _template("home/Documents/PowerShell/Microsoft.PowerShell_profile.ps1.tmpl"),
+    )
+
+    plan = collect_uninstall_plan(home)
+
+    assert _action(plan, zshrc).kind == "remove-file"
+    assert _action(plan, ps_profile).kind == "remove-file"
