@@ -50,6 +50,12 @@ flowchart TB
         PrivateRepo --> OverlayCheckout
     end
 
+    subgraph LocalState["本機狀態與落地目錄"]
+        SourceRepo["~/.local/share/chezmoi\nsource repo / source state"]
+        ChezmoiConfig["~/.config/chezmoi\nchezmoi config / persistent state"]
+        RuntimeDir["~/.config/settingzsh\nsettingZsh runtime baseline"]
+    end
+
     subgraph Guardrails["settingzsh.cli guardrails"]
         Preflight["preflight"]
         Adopt["adopt"]
@@ -66,12 +72,18 @@ flowchart TB
 
     Source --> Public
     Public --> Target
+    RootFile --> SourceRepo
+    SourceRepo --> Source
+    Config --> ChezmoiConfig
     OverlayCheckout --> Scripts
     Scripts --> Tools
     Scripts --> SSHDir
     Scripts --> CustomPaths
     Modify --> Zshrc
     Shell --> Managed
+    RuntimeDir --> Init
+    RuntimeDir --> Managed
+    RuntimeDir --> Profiles
     PS --> Profiles
     SSH --> SSHMain
     SSH --> SSHDir
@@ -117,9 +129,26 @@ flowchart LR
     Init --> Local["local.d/*.zsh"]
 ```
 
+## `chezmoi` 與 runtime 目錄邊界
+
+```mermaid
+flowchart LR
+    SourceRepo["~/.local/share/chezmoi\nrepo clone / source state"]
+    ChezmoiConfig["~/.config/chezmoi\nchezmoi config / state"]
+    RuntimeDir["~/.config/settingzsh\nruntime baseline"]
+    Zshrc["~/.zshrc\nbootstrap only"]
+    Profiles["~/Documents/*/Microsoft.PowerShell_profile.ps1\nbridge targets"]
+
+    SourceRepo -->|chezmoi 讀模板| RuntimeDir
+    ChezmoiConfig -->|提供 machine data / script state| SourceRepo
+    RuntimeDir -->|init.zsh / managed.d| Zshrc
+    RuntimeDir -->|public-baseline.ps1| Profiles
+```
+
 ## 邊界規則
 
 - `public baseline` 是唯一主入口，負責非機密的公開基線設定。
 - `custom private repo` 只負責 `~/.ssh/**`，不接管 `~/.ssh/config` 主檔。
 - `settingzsh.cli` 只保留 `preflight`、`adopt`、`doctor`、`legacy-import` 這些 guardrails；`setup` / `update` / `migrate` / `reconcile` 都是退役 / deprecated write paths，不再是新安裝主流程。
 - `~/.zshrc` 只允許一個 `settingZsh bootstrap` 區塊；真正 shell 內容在 `init.zsh` 與 `managed.d/`。
+- `~/.local/share/chezmoi` 是 source repo，不是 runtime baseline；`~/.config/chezmoi` 是 chezmoi 自己的 config/state；`~/.config/settingzsh` 才是 shell / PowerShell 直接讀取的 runtime baseline。

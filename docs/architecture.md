@@ -67,6 +67,25 @@ dotfiles 工具通常擅長的是「檔案狀態管理」，不一定擅長處�
 
 `chezmoi apply` 做的事，就是把來源目錄渲染並同步到目標檔案。對這個 repo 來說，`~/.zshrc` 已不再是單純整份覆蓋，而是透過 `modify_` 模板只建立或插入 bootstrap。
 
+### 1.1 三個容易混淆的本機目錄
+
+在這個專案裡，下面三個目錄最容易被混在一起，但它們責任不同：
+
+- `~/.local/share/chezmoi`
+  - `chezmoi init` 拉下來的 source repo 位置
+  - 這裡放的是 source state，也就是模板、`run_*` scripts、`.chezmoiroot`
+  - 對這個 repo 來說，真正被 `chezmoi` 當成來源根目錄的是 `~/.local/share/chezmoi/home`
+- `~/.config/chezmoi`
+  - `chezmoi` 自己的本機設定與 persistent state
+  - 例如 `chezmoi.toml`、machine data override、script state 都在這一層
+  - 它不是 runtime baseline 目錄，也不是 repo clone
+- `~/.config/settingzsh`
+  - `settingZsh` 套用後真正落地的 runtime baseline 目錄
+  - shell / PowerShell 啟動時讀的是這裡，不是 `~/.local/share/chezmoi`
+  - 例如 `init.zsh`、`managed.d/*.zsh`、`powershell/public-baseline.ps1`
+
+如果只刪 `~/.config/chezmoi`，通常只會清掉 `chezmoi` 的設定與 state，不會刪掉 `~/.local/share/chezmoi` 這份 source repo，也不會自動移除 `~/.config/settingzsh` 的 runtime baseline。
+
 ### 2. Template 與 data
 
 `chezmoi` 支援模板與資料注入，所以同一份來源目錄可以根據平台或機器資料產生不同結果。
@@ -243,6 +262,7 @@ fi
 - 不再讓工具接管整份 `~/.zshrc`
 - 把 baseline 與 local customization 分層
 - 降低其他工具插手 `~/.zshrc` 時的破壞面
+- 把 runtime baseline 收斂到 `~/.config/settingzsh/`，讓它和 `~/.local/share/chezmoi` 的 source state 明確分離
 
 #### Windows
 

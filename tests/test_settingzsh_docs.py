@@ -133,6 +133,12 @@ def test_architecture_doc_explains_dotfiles_chezmoi_and_project_layers() -> None
     assert "[data.overlay].repo" in architecture
     assert "modify_dot_zshrc" in architecture
     assert ".chezmoiroot" in architecture
+    assert "~/.local/share/chezmoi" in architecture
+    assert "~/.config/chezmoi" in architecture
+    assert "~/.config/settingzsh" in architecture
+    assert "source repo" in architecture
+    assert "persistent state" in architecture
+    assert "runtime baseline" in architecture
     assert "run_*" in architecture
     assert "nvim / vim baseline" in architecture
     assert "SOPS + age" in architecture
@@ -155,6 +161,11 @@ def test_architecture_diagram_doc_exists_and_has_mermaid_views() -> None:
     assert "新機器首次安裝流程" in diagram
     assert "terminology.md" in diagram
     assert ".zshrc" in diagram
+    assert "~/.local/share/chezmoi" in diagram
+    assert "~/.config/chezmoi" in diagram
+    assert "~/.config/settingzsh" in diagram
+    assert "source repo / source state" in diagram
+    assert "runtime baseline" in diagram
     assert "private_ssh_overlay" in diagram
     assert "~/.ssh/custom-paths" in diagram
     assert "settingzsh.cli guardrails" in diagram
