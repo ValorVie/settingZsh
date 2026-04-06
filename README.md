@@ -176,6 +176,16 @@ uv run --directory lib python -m settingzsh.cli adopt
 exec zsh
 ```
 
+`exec zsh` 只會切換目前這個 session。
+
+如果你要把 login shell 也切成 zsh，請手動執行：
+
+```bash
+chsh -s /bin/zsh "$(whoami)"
+```
+
+這點在 LXC / container / server 環境特別重要，因為安裝完成不代表帳號的 login shell 會自動改掉。
+
 **Windows**
 
 重新開啟 PowerShell / Windows Terminal。
@@ -204,6 +214,14 @@ exec zsh
 1. `chezmoi update`
 2. 若有 shell 異常，再跑 `doctor`
 3. 若是既有機器要看導入風險，回到 `preflight` / `adopt`
+
+### 我想卸載 / 重置這台機器
+
+1. 先看 [docs/uninstall-guide.md](./docs/uninstall-guide.md)
+2. 正式入口是 [`scripts/uninstall-settingzsh.sh`](./scripts/uninstall-settingzsh.sh)
+3. 標準流程是 `--dry-run` -> `--execute` -> `--restore <backup-id>`
+4. 卸載不是重新安裝，不會自動重新 init
+5. 如果你先前手動把 login shell 改成 `/bin/zsh`，卸載不會替你改回去
 
 ### 我想把 SSH 私有設定接上去
 
@@ -267,6 +285,14 @@ uv run --directory lib python -m settingzsh.cli preflight
 - 不接管整份 `~/.zshrc`
 - 不同步 `known_hosts`
 - 不為 existing machine 自動清理舊 `.zshrc`
+
+### 卸載與重置
+
+這個 repo 現在的正式卸載入口是 [`scripts/uninstall-settingzsh.sh`](./scripts/uninstall-settingzsh.sh)；完整說明請看 [docs/uninstall-guide.md](./docs/uninstall-guide.md)。
+
+如果你懷疑 source state 還卡在舊版，先不要直接重跑 `chezmoi init --apply`。請先照卸載指南把舊的 `~/.local/share/chezmoi` 與相關目標狀態處理乾淨，再決定要不要重新安裝。
+
+卸載流程本身不會自動重新 init，也不會替你把手動 `chsh -s /bin/zsh "$(whoami)"` 改回去。
 
 ## 完整安裝指南
 
@@ -784,6 +810,12 @@ ssh -G <host>
 - key 是否真的寫入到目標路徑
 - `IdentityFile` 與 `IdentitiesOnly yes` 是否一致
 - custom path 是否和實際檔案位置一致
+
+### 我懷疑 source state 還留在舊版
+
+如果你發現 `~/.local/share/chezmoi` 還留著舊 source state，不要直接重跑 `chezmoi init --apply`。
+
+先看 [docs/uninstall-guide.md](./docs/uninstall-guide.md)，用正式卸載入口把舊狀態清乾淨，再決定要不要重新安裝。
 
 ### editor 沒有出現或工具不完整
 

@@ -56,6 +56,19 @@ def test_readme_mentions_chezmoi_guardrails_and_retired_write_paths() -> None:
     assert "shared-keys" in readme
     assert "常見操作場景" in readme
     assert "故障排查" in readme
+    assert "卸載與重置" in readme
+    assert "scripts/uninstall-settingzsh.sh" in readme
+    assert "docs/uninstall-guide.md" in readme
+    assert "--dry-run" in readme
+    assert "--execute" in readme
+    assert "--restore <backup-id>" in readme
+    assert "不會自動重新 init" in readme
+    assert "exec zsh" in readme
+    assert 'chsh -s /bin/zsh "$(whoami)"' in readme
+    assert "LXC" in readme
+    assert "container" in readme
+    assert "server" in readme
+    assert "不會替你改回去" in readme
     assert "custom private repo 最小接線流程" in readme
     assert "preflight 結果怎麼看" in readme
     assert "只走 `chezmoi`" in readme
@@ -63,6 +76,31 @@ def test_readme_mentions_chezmoi_guardrails_and_retired_write_paths() -> None:
     assert "啟用 private SSH overlay" in readme
     assert "SETTINGZSH_INSTALL_FONTS=false chezmoi apply" in readme
     assert "~/.ssh/custom-paths" in readme
+
+
+def test_uninstall_guide_documents_safe_reset_flow_and_login_shell_scope() -> None:
+    guide = (_PROJECT_ROOT / "docs" / "uninstall-guide.md").read_text(encoding="utf-8")
+
+    assert "什麼情況需要卸載 / 重置" in guide
+    assert "scripts/uninstall-settingzsh.sh" in guide
+    assert "--dry-run" in guide
+    assert "--execute" in guide
+    assert "--restore <backup-id>" in guide
+    assert "專案專屬" in guide
+    assert "局部改寫" in guide
+    assert "共享路徑" in guide
+    assert "人工確認" in guide
+    assert "不會自動重新 init" in guide
+    assert "不自動重新 init" in guide
+    assert "二次 backup" in guide
+    assert "exec zsh" in guide
+    assert 'chsh -s /bin/zsh "$(whoami)"' in guide
+    assert "LXC" in guide
+    assert "container" in guide
+    assert "不會替你改回去" in guide
+    assert "~/.local/share/chezmoi" in guide
+    assert "pure baseline" in guide
+    assert "若含使用者自訂內容，預設不改" in guide
 
 
 def test_private_repo_example_readme_uses_nested_overlay_schema() -> None:
