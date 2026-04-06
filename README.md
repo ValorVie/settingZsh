@@ -135,6 +135,14 @@ chezmoi init --apply "$PUBLIC_REPO"
 chezmoi init --apply --branch codex/settingzsh-chezmoi "$PUBLIC_REPO"
 ```
 
+若你在 server / LXC 上不需要字型，也可以在 fresh install 當下先跳過：
+
+```bash
+SETTINGZSH_INSTALL_FONTS=false chezmoi init --apply "$PUBLIC_REPO"
+# 或
+SETTINGZSH_INSTALL_FONTS=false chezmoi init --apply --branch codex/settingzsh-chezmoi "$PUBLIC_REPO"
+```
+
 如果已經 init 過，之後更新直接用：
 
 ```bash

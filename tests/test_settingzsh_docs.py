@@ -35,6 +35,8 @@ def test_readme_mentions_chezmoi_guardrails_and_retired_write_paths() -> None:
     assert "private_ssh_overlay = true" in readme
     assert 'repo = ""' in readme
     assert 'profile = "auto"' in readme
+    assert "SETTINGZSH_INSTALL_FONTS=false chezmoi init --apply" in readme
+    assert "SETTINGZSH_INSTALL_FONTS=false chezmoi init --apply --branch codex/settingzsh-chezmoi" in readme
     assert "feature_editor" not in readme
     assert "install_fonts = true" not in readme
     assert "private_ssh_overlay_repo" not in readme
