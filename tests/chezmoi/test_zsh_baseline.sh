@@ -26,9 +26,29 @@ require_file "home/dot_config/settingzsh/init.zsh.tmpl"
 require_file "home/dot_config/settingzsh/managed.d/10-base.zsh.tmpl"
 require_file "home/dot_config/settingzsh/managed.d/40-editor.zsh.tmpl"
 
-require_contains "home/dot_config/settingzsh/init.zsh.tmpl" "SETTINGZSH_LOADED" "init loader missing session guard"
+require_contains "home/dot_config/settingzsh/init.zsh.tmpl" "_SETTINGZSH_LOADED_IN_THIS_SHELL" "init loader missing current-shell guard"
 require_contains "home/dot_config/settingzsh/init.zsh.tmpl" "managed.d/*.zsh(N)" "init loader missing managed fragments loop"
 require_contains "home/dot_config/settingzsh/init.zsh.tmpl" "local.d/*.zsh(N)" "init loader missing local fragments loop"
+
+tmp_home="$(mktemp -d)"
+trap 'rm -rf "$tmp_home"' EXIT
+mkdir -p "$tmp_home/.config/settingzsh/managed.d" "$tmp_home/.config/settingzsh/local.d"
+cat > "$tmp_home/.config/settingzsh/managed.d/99-probe.zsh" <<'EOF'
+SETTINGZSH_PROBE_COUNT=$(( ${SETTINGZSH_PROBE_COUNT:-0} + 1 ))
+EOF
+
+init_probe_output="$(
+    SETTINGZSH_LOADED=1 HOME="$tmp_home" zsh -fc '
+        source home/dot_config/settingzsh/init.zsh.tmpl
+        source home/dot_config/settingzsh/init.zsh.tmpl
+        print -r -- "probe_count=${SETTINGZSH_PROBE_COUNT:-0}"
+    '
+)"
+if ! grep -qx 'probe_count=1' <<< "$init_probe_output"; then
+    echo "init loader guard should not be inherited across child shells"
+    printf '%s\n' "$init_probe_output"
+    exit 1
+fi
 
 require_contains "home/dot_config/settingzsh/managed.d/10-base.zsh.tmpl" "typeset -U path fpath" "base fragment missing path/fpath dedupe"
 require_contains "home/dot_config/settingzsh/managed.d/10-base.zsh.tmpl" "/root/.local/bin" "base fragment missing linux root path behavior"

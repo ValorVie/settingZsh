@@ -211,9 +211,35 @@ chsh -s /bin/zsh "$(whoami)"
 
 ### 我只想更新既有 baseline
 
-1. `chezmoi update`
-2. 若有 shell 異常，再跑 `doctor`
-3. 若是既有機器要看導入風險，回到 `preflight` / `adopt`
+1. 先看本次更新會改哪些目標檔：
+
+   ```bash
+   chezmoi diff
+   ```
+
+2. 更新已初始化過的 source state 並重新套用 baseline：
+
+   ```bash
+   chezmoi update
+   ```
+
+3. 若只是調整本機 `~/.config/chezmoi/chezmoi.toml`，例如 feature flag 或 private SSH overlay，直接重新套用即可：
+
+   ```bash
+   chezmoi apply
+   ```
+
+4. 若更新內容包含 shell loader / tmux 相關修正，既有 tmux server 可能還保留舊環境。更新後可清掉舊 guard，再開新的 tmux pane / window：
+
+   ```bash
+   unset SETTINGZSH_LOADED
+   tmux set-environment -u SETTINGZSH_LOADED 2>/dev/null
+   tmux set-environment -gu SETTINGZSH_LOADED 2>/dev/null
+   ```
+
+   不需要直接 `tmux kill-server`，除非你確定可以關閉所有 tmux session。
+
+5. 若有 shell 異常，再跑 `doctor`。若是既有機器要看導入風險，回到 `preflight` / `adopt`。
 
 ### 我想卸載 / 重置這台機器
 
