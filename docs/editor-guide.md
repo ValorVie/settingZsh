@@ -30,7 +30,7 @@ nvim file.txt    # 啟動 Neovim
 | 縮排 | 4 空格 | Tab 自動轉為空格 |
 | 搜尋 | 忽略大小寫 / 增量搜尋 | 包含大寫時自動切換為區分大小寫 |
 | 滑鼠 | 關閉 | 不攔截終端機滑鼠事件 |
-| 剪貼簿 | `unnamed,unnamedplus` | 共用系統剪貼簿 |
+| 剪貼簿 | 本機使用 `unnamed,unnamedplus`；SSH 使用 OSC 52 | SSH 明確以 `\"+y` 複製到外層 terminal |
 | 分割視窗 | 右 / 下 | 新視窗預設開在右邊和下面 |
 | 換行 | Unix (`\n`) | 自動修正檔尾換行 |
 
@@ -58,6 +58,18 @@ nvim file.txt    # 啟動 Neovim
 | `p` / `P` | 貼上（下方 / 上方） | **p**aste |
 | `u` / `Ctrl+r` | 復原 / 重做 | **u**ndo / **r**edo |
 | `.` | 重複上一個操作 | 「再來一次」 |
+
+#### SSH 複製到本機剪貼簿
+
+SSH 環境會保留 Vim 內部 unnamed register，只有明確使用 `+` register 時才送出 OSC 52，避免一般貼上依賴終端是否支援讀取 clipboard。
+
+| 按鍵 | 功能 |
+|------|------|
+| `\"+yy` | 複製目前整行到本機剪貼簿 |
+| `\"+y{motion}` | 依 motion 複製，例如 `\"+ye` 複製到單字結尾 |
+| Visual 選取後 `\"+y` | 複製選取範圍到本機剪貼簿 |
+
+外層 terminal 必須支援 OSC 52。若 Vim 位於 tmux 內，tmux 也必須允許 clipboard 與 escape sequence passthrough。
 
 #### 搜尋與取代
 

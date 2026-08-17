@@ -154,6 +154,8 @@ $ ./setup.sh
 | fd | `brew install fd` | `sudo apt install fd-find` | `winget install sharkdp.fd` |
 | lazygit | `brew install lazygit` | GitHub Release binary | `winget install JesseDuffield.lazygit` |
 
+Linux／macOS 的原生 Vim 在 SSH 環境支援 OSC 52。使用 `\"+yy`、`\"+y{motion}`，或 Visual 選取後按 `\"+y`，可把內容送到外層 terminal clipboard；本機 Vim 維持原生 `unnamed,unnamedplus` 行為。
+
 ### LazyVim 使用方式
 
 本專案使用 [LazyVim](https://www.lazyvim.org/) 作為 Neovim 預設框架，已啟用以下 Extras：

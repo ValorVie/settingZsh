@@ -9,8 +9,65 @@ set relativenumber      " 顯示相對行號
 set wrap                " 自動折行
 set encoding=utf-8      " 設定編碼
 set mouse=              " 關閉攔截滑鼠
-set clipboard=unnamed,unnamedplus " 共用系統剪貼簿（跨平台相容）
+if empty($SSH_CONNECTION) && empty($SSH_TTY)
+    set clipboard=unnamed,unnamedplus " 本機 Vim 使用原生系統剪貼簿
+else
+    set clipboard=                    " SSH 明確使用下方 OSC 52 mapping
+endif
 set backspace=indent,eol,start    " 讓 Backspace 正常運作
+
+" --- SSH OSC 52 剪貼簿 ---
+if !empty($SSH_CONNECTION) || !empty($SSH_TTY)
+    function! s:OSC52Send(text) abort
+        if !executable('base64')
+            echohl ErrorMsg
+            echom 'OSC 52 複製失敗：找不到 base64'
+            echohl None
+            return
+        endif
+
+        let l:b64 = substitute(system('base64', a:text), '\_s', '', 'g')
+        if v:shell_error != 0
+            echohl ErrorMsg
+            echom 'OSC 52 複製失敗：base64 執行錯誤'
+            echohl None
+            return
+        endif
+
+        let l:tty = get(g:, 'settingzsh_osc52_tty', '/dev/tty')
+        call writefile(["\033]52;c;" . l:b64 . "\007"], l:tty, 'b')
+    endfunction
+
+    function! s:OSC52Operator(type) abort
+        if a:type ==# 'line'
+            silent normal! `[V`]y
+        elseif a:type ==# 'block'
+            silent execute "normal! `[\<C-V>`]y"
+        else
+            silent normal! `[v`]y
+        endif
+        call s:OSC52Send(getreg('"'))
+    endfunction
+
+    function! s:OSC52Start() abort
+        let &operatorfunc = '<SID>OSC52Operator'
+        return 'g@'
+    endfunction
+
+    function! s:OSC52Line() abort
+        silent normal! yy
+        call s:OSC52Send(getreg('"'))
+    endfunction
+
+    " Normal mode：\"+y{motion}
+    nnoremap <expr> "+y <SID>OSC52Start()
+
+    " Normal mode 整行：\"+yy
+    nnoremap <silent> "+yy :<C-U>call <SID>OSC52Line()<CR>
+
+    " Visual 選取後：\"+y
+    xnoremap <silent> "+y y:<C-U>call <SID>OSC52Send(getreg('"'))<CR>
+endif
 
 " --- 縮排與 Tab ---
 set tabstop=4           " Tab 寬度為 4
