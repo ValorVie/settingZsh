@@ -12,6 +12,11 @@ vim.opt.wrap = true
 vim.opt.number = true
 vim.opt.relativenumber = false
 
+-- 固定主要語言工具，避免 LazyVim 預設值隨版本切換
+vim.g.lazyvim_php_lsp = "intelephense"
+vim.g.lazyvim_python_lsp = "pyright"
+vim.g.lazyvim_python_ruff = "ruff"
+
 -- 關閉滑鼠（LazyVim 預設為 "a"）
 vim.opt.mouse = ""
 

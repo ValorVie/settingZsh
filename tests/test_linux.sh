@@ -201,6 +201,15 @@ if [ "$HAS_EDITOR" = true ]; then
     else
         fail "lazygit 未安裝"
     fi
+
+    # --- Test 17: nvim config ---
+    echo "--- Test 17: Neovim 配置 ---"
+    NVIM_CONFIG_DIR="$HOME/.config/nvim"
+    if [ -f "$NVIM_CONFIG_DIR/init.lua" ]; then
+        pass "nvim init.lua 存在：$NVIM_CONFIG_DIR"
+    else
+        fail "nvim config 不存在：$NVIM_CONFIG_DIR/init.lua"
+    fi
 else
     echo ""
     echo "=== Editor 環境未安裝，略過 Editor 測試 ==="

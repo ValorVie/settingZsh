@@ -1,48 +1,64 @@
--- 編輯器插件覆寫：對齊 VSCode 的 search.exclude 和 files.exclude
+-- 編輯器插件覆寫：統一 VS Code 的 search.exclude 和 files.exclude 意圖
+
+local excludes = {
+    ".git",
+    ".cache",
+    ".pytest_cache",
+    ".terraform",
+    ".venv",
+    ".worktrees",
+    "__pycache__",
+    "build",
+    "coverage",
+    "dist",
+    "logs",
+    "node_modules",
+    "target",
+    "vendor",
+    "venv",
+}
+
+local paths = require("config.path")
+
+local function explorer_path(picker)
+    local items = picker:selected({ fallback = true })
+    return items[1] and Snacks.picker.util.path(items[1]) or nil
+end
+
+local function copy_explorer_path(relative)
+    return function(picker)
+        local file = explorer_path(picker)
+        local root = relative and LazyVim.root({ normalize = true }) or nil
+        paths.copy(file, { root = root })
+    end
+end
 
 return {
-  -- Telescope: 搜尋排除
-  {
-    "nvim-telescope/telescope.nvim",
-    opts = {
-      defaults = {
-        file_ignore_patterns = {
-          "node_modules",
-          "target",
-          "logs",
-          "venv",
-          "%.venv",
-          "%.git/",
-          "dist",
-          "build",
-          "vendor",
+    {
+        "folke/snacks.nvim",
+        opts = {
+            picker = {
+                actions = {
+                    copy_absolute_path = copy_explorer_path(false),
+                    copy_relative_path = copy_explorer_path(true),
+                },
+                sources = {
+                    files = { exclude = excludes, follow = false },
+                    grep = { exclude = excludes, follow = false },
+                    explorer = {
+                        exclude = excludes,
+                        follow = false,
+                        win = {
+                            list = {
+                                keys = {
+                                    ["Y"] = "copy_absolute_path",
+                                    ["gY"] = "copy_relative_path",
+                                },
+                            },
+                        },
+                    },
+                },
+            },
         },
-      },
     },
-  },
-
-  -- Neo-tree: 檔案總管排除
-  {
-    "nvim-neo-tree/neo-tree.nvim",
-    opts = {
-      filesystem = {
-        filtered_items = {
-          visible = false,
-          hide_dotfiles = false,
-          hide_gitignored = true,
-          hide_by_name = {
-            ".git",
-            ".DS_Store",
-            "node_modules",
-            "target",
-            "Thumbs.db",
-            "desktop.ini",
-            "$RECYCLE.BIN",
-            "System Volume Information",
-            "bower_components",
-          },
-        },
-      },
-    },
-  },
 }

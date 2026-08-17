@@ -159,10 +159,11 @@ $ ./setup.sh
 本專案使用 [LazyVim](https://www.lazyvim.org/) 作為 Neovim 預設框架，已啟用以下 Extras：
 
 - `lang.python`、`lang.typescript`、`lang.rust`、`lang.php`
-- `lang.json`、`lang.markdown`
-- `formatting.prettier`、`linting.eslint`
+- `lang.json`、`lang.yaml`、`lang.docker`、`lang.markdown`
+- `editor.snacks_picker`、`editor.snacks_explorer`
+- `formatting.black`、`formatting.prettier`、`linting.eslint`
 
-首次啟動 Neovim 時，LazyVim 會自動下載所有插件與 LSP 伺服器，請確保網路連線正常。
+首次啟動 Neovim 時，LazyVim 會下載外掛；開啟各語言 workspace 後，Mason 才會補齊對應 LSP。外掛存在不代表 LSP 已 attach，請以 `:LspInfo` 驗收。
 
 ```bash
 nvim   # 首次啟動會自動安裝插件
@@ -175,6 +176,7 @@ nvim   # 首次啟動會自動安裝插件
 | 檔案搜尋 | `Ctrl+P` | `<Space>ff` |
 | 全域搜尋 | `Ctrl+Shift+F` | `<Space>sg` |
 | 檔案總管 | `Ctrl+Shift+E` | `<Space>e` |
+| 最近專案 | Project Manager | `<Space>fp` |
 | 快速修正 | `Ctrl+.` | `<Space>ca` |
 | 跳至定義 | `F12` | `gd` |
 | 查看參照 | `Shift+F12` | `gr` |
@@ -186,6 +188,9 @@ nvim   # 首次啟動會自動安裝插件
 | 分割視窗 | `Ctrl+\` | `<Space>-` / `<Space>\|` |
 | 切換緩衝區 | `Ctrl+Tab` | `<Space>,` |
 | 命令面板 | `Ctrl+Shift+P` | `<Space>:` |
+| 相對行號 | — | `<Space>uL` |
+| 複製相對路徑 | Copy Relative Path | `<Space>yp` |
+| 複製相對路徑與行號 | Copy Relative Path and Line | `<Space>yL` |
 
 > **提示：** `<Space>` 即 Leader 鍵（空白鍵）。按下後稍等會顯示 which-key 選單，列出所有可用指令。
 
@@ -374,4 +379,3 @@ uv run lib/config_merge.py \
 ```
 update.bat
 ```
-

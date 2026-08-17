@@ -104,14 +104,19 @@ nvim file.txt    # 啟動 Neovim
 | `tabstop` | 4 | 2 | Tab 寬度對齊 VSCode |
 | `shiftwidth` | 4 | 2 | 自動縮排寬度 |
 | `wrap` | true | false | 啟用自動換行 |
+| `number` | true | true | 預設顯示絕對行號 |
+| `relativenumber` | false | true | 需要時以 `<Leader>uL` 切換 |
 | `mouse` | `""` | `"a"` | 關閉滑鼠攔截 |
 | `fileformat` | unix | - | 統一使用 Unix 換行 |
+| `clipboard` | SSH 使用 OSC 52 | 自動偵測 | 非 SSH 保留原生 provider |
 
 ### 自訂快鍵
 
 | 按鍵 | 模式 | 功能 |
 |------|------|------|
 | `jk` | Insert | 退出插入模式（等同 `Esc`） |
+| `<Leader>yp` | Normal | 複製專案相對路徑 |
+| `<Leader>yL` | Normal | 複製專案相對路徑與目前行號 |
 
 ### LazyVim 核心快鍵
 
@@ -121,11 +126,13 @@ Leader 鍵為**空格鍵** (`<Space>`)。以下列出最常用的操作：
 
 | 按鍵 | 功能 | 記法 |
 |------|------|------|
-| `<Leader>ff` | 搜尋檔案（Telescope） | **f**ind **f**ile |
+| `<Leader>ff` | 搜尋檔案（Snacks picker） | **f**ind **f**ile |
 | `<Leader>fg` | 全域文字搜尋（Grep） | **f**ind by **g**rep |
 | `<Leader>fb` | 搜尋已開啟的 Buffer | **f**ind **b**uffer |
 | `<Leader>fr` | 搜尋最近開啟的檔案 | **f**ind **r**ecent |
-| `<Leader>e` | 開啟/關閉檔案總管（Neo-tree） | **e**xplorer |
+| `<Leader>e` | 開啟/關閉檔案總管（Snacks Explorer） | **e**xplorer |
+| `<Leader>fp` | 切換最近專案 | **f**ind **p**roject |
+| `Y` / `gY` | Explorer 複製絕對／相對路徑 | **Y**ank path |
 
 #### Buffer 管理
 
@@ -159,7 +166,7 @@ Leader 鍵為**空格鍵** (`<Space>`)。以下列出最常用的操作：
 
 | 按鍵 | 功能 | 記法 |
 |------|------|------|
-| `<Leader>sr` | 搜尋並取代（Spectre） | **s**earch **r**eplace |
+| `<Leader>sr` | 搜尋並取代（Grug-far） | **s**earch **r**eplace |
 | `<Leader>ss` | 搜尋文件符號 | **s**earch **s**ymbol |
 | `<Leader>sS` | 搜尋工作區符號 | 大 S = 全工作區 |
 
@@ -181,6 +188,7 @@ Leader 鍵為**空格鍵** (`<Space>`)。以下列出最常用的操作：
 | `<Leader>uf` | 切換自動格式化 | **u**I toggle **f**ormat |
 | `<Leader>us` | 切換拼字檢查 | **u**I toggle **s**pell |
 | `<Leader>uw` | 切換自動換行 | **u**I toggle **w**rap |
+| `<Leader>uL` | 切換相對行號 | **u**I relative **L**ines |
 
 ### 啟用的語言支援
 
@@ -188,18 +196,21 @@ Leader 鍵為**空格鍵** (`<Space>`)。以下列出最常用的操作：
 
 | Extra | 提供功能 |
 |-------|---------|
-| `lang.python` | Pyright LSP + Ruff 格式化 + debugpy |
-| `lang.typescript` | ts_ls LSP + 型別檢查 |
+| `lang.python` + `formatting.black` | Pyright + Ruff analysis、Black 格式化、虛擬環境切換 |
+| `lang.typescript` | vtsls + 型別檢查 |
 | `lang.rust` | rust-analyzer LSP + Cargo 整合 |
 | `lang.php` | Intelephense LSP |
 | `lang.json` | JSON Schema 驗證 |
+| `lang.yaml` | YAML LSP + SchemaStore |
+| `lang.docker` | Dockerfile／Compose LSP + Hadolint |
 | `lang.markdown` | Markdown 預覽 + 格式化 |
+| `editor.snacks_picker` / `snacks_explorer` | 找檔、grep、最近專案與檔案總管 |
 | `formatting.prettier` | Prettier 程式碼格式化 |
 | `linting.eslint` | ESLint 整合 |
 
 ### 搜尋排除目錄
 
-Telescope 和 Neo-tree 預設排除以下目錄，避免搜尋結果包含不相關的檔案：
+Snacks picker 和 Snacks Explorer 共用以下排除意圖，避免搜尋結果包含不相關的檔案：
 
 ```
 node_modules/  target/  logs/  venv/  .venv/
@@ -208,7 +219,7 @@ node_modules/  target/  logs/  venv/  .venv/
 
 ### Markdown 特殊處理
 
-Markdown 檔案預設**不自動格式化**，且保留行尾空白（Markdown 使用兩個空白表示 `<br>`）。
+Markdown 保持自動格式化與預覽功能，但個人 trailing-whitespace fallback 會略過 Markdown，保留兩個行尾空白表示的 `<br>`。專案有 `.editorconfig` 時，以專案規則為準。
 
 ---
 
@@ -216,7 +227,7 @@ Markdown 檔案預設**不自動格式化**，且保留行尾空白（Markdown �
 
 ### Neovim 首次啟動很慢？
 
-首次啟動時 LazyVim 會自動下載所有插件和 LSP 伺服器。等待安裝完成後重啟即可。
+首次啟動時 LazyVim 會下載外掛；對應 LSP 可能要在第一次開啟語言 workspace 後由 Mason 安裝。等待完成後，以 `:LspInfo` 確認 client attach。
 
 ### 如何安裝新的語言支援？
 

@@ -224,7 +224,7 @@ if [ "$HAS_EDITOR" = true ]; then
     if [ -f "$NVIM_CONFIG_DIR/init.lua" ]; then
         pass "nvim init.lua exists at $NVIM_CONFIG_DIR"
     else
-        warn "nvim config not deployed yet"
+        fail "nvim config 不存在：$NVIM_CONFIG_DIR/init.lua"
     fi
 else
     echo ""

@@ -194,7 +194,7 @@ if ($HasEditor) {
     if (Test-Path (Join-Path $NvimConfigDir "init.lua")) {
         Test-Pass "nvim init.lua exists at $NvimConfigDir"
     } else {
-        Test-Warn "nvim config not deployed yet"
+        Test-Fail "nvim config not deployed: $(Join-Path $NvimConfigDir 'init.lua')"
     }
 } else {
     Write-Host ""
