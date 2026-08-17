@@ -60,9 +60,14 @@ install_uv() {
 merge_config() {
     local target="$1" template="$2" section="$3" filetype="$4"
     if command -v uv >/dev/null 2>&1; then
+        local merge_status=0
         uv run "$SCRIPT_DIR/lib/config_merge.py" \
             --target "$target" --template "$template" \
-            --section "$section" --type "$filetype"
+            --section "$section" --type "$filetype" || merge_status=$?
+        case "$merge_status" in
+            0|2) return 0 ;; # 2 表示全新配置已成功建立
+            *) return "$merge_status" ;;
+        esac
     else
         echo "[警告] uv 不可用，使用備份+覆寫模式"
         [ -f "$target" ] && cp "$target" "${target}.bak"
