@@ -219,7 +219,7 @@ node_modules/  target/  logs/  venv/  .venv/
 
 ### Markdown 特殊處理
 
-Markdown 保持自動格式化與預覽功能，但個人 trailing-whitespace fallback 會略過 Markdown，保留兩個行尾空白表示的 `<br>`。專案有 `.editorconfig` 時，以專案規則為準。
+Markdown 保持 Prettier 自動格式化與預覽功能，但個人 trailing-whitespace fallback 會略過 Markdown，保留兩個行尾空白表示的 `<br>`。markdownlint 工具仍會安裝，但預設不發布 MD013、MD031、MD040 等格式 diagnostics；Marksman 的連結與文件結構 diagnostics 保留。專案有 `.editorconfig` 時，以專案規則為準。
 
 ---
 

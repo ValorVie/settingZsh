@@ -66,7 +66,7 @@ Snacks Explorer 新增 `Y` 複製絕對路徑與 `gY` 複製相對路徑；一�
 - Python：保留 LazyVim 預設 Pyright，Ruff 只做 analysis，啟用 Black Extra 做格式化。這最接近既有 Pylance + Black 習慣；basedpyright 留作 per-project 或未來比較。
 - TypeScript／JavaScript：使用 LazyVim 預設 vtsls，搭配既有 ESLint 與 Prettier。
 - Rust：保留 rustaceanvim／rust-analyzer，不再配置第二個 LSP client。
-- JSON、Markdown：保留既有 Extra，將 Marksman executable 納入驗收。
+- JSON、Markdown：保留既有 Extra，將 Marksman executable 納入驗收；markdownlint 工具保留，但不預設發布格式 diagnostics。
 - YAML、Docker：新增官方 Extra。
 - HTML／CSS：在 `nvim-lspconfig` 的 server opts 明確啟用 `html`、`cssls`；格式化仍由 Prettier。
 
@@ -106,6 +106,20 @@ LazyVim Extra 與 mason-lspconfig 負責 LSP 安裝意圖；`mason.nvim.ensure_i
 
 更新 `README.md` 與 `docs/editor-guide.md`：picker/explorer、語言 server、DAP optional 狀態、Markdown 行為與新快捷鍵必須和 runtime 一致。P1／P2 只列後續選項，不得寫成已安裝。
 
+### D10: Markdownlint 改為專案選配
+
+影響平台：全部。
+
+保留 Markdown Extra、Marksman、Prettier、TOC、preview 與 `markdownlint-cli2` executable，但從 `nvim-lint` 的 Markdown filetype 移除 markdownlint。這會停止 MD013、MD031、MD040 等格式 diagnostics，也讓 LazyVim 的條件式 markdownlint formatter 不執行；Prettier 仍是預設 formatter，Marksman 的連結與文件結構 diagnostics 仍保留。需要 markdownlint 的專案可由專案配置重新啟用。
+
+### D11: Neovim 配置部署可安全重跑
+
+影響平台：Linux、macOS；Windows 既有流程已先替換固定 backup 再部署。
+
+Linux 與 macOS 共用一個不改變 caller shell options 的 Bash helper。helper 以明確的 source／target 參數操作，不覆寫 `HOME`；來源與目標內容相同時直接 no-op。首次部署直接安裝；既有配置不同時，先在 target parent 建立並驗證暫存副本，再將目前配置換成固定 `.bak`，最後以同 filesystem rename 套用。重跑不得產生 `.bak/nvim` 或更多巢狀 backup；失敗時保留或恢復原目標。
+
+這裡的等冪性指配置部署可安全重跑且得到相同終態。apt、brew、nvm、fzf 等套件管理步驟仍可能依上游狀態執行檢查或更新，不宣稱整支安裝腳本完全無 I/O。
+
 ## Risks / Trade-offs
 
 - [風險] 切換 Snacks 會改變 picker/explorer UI 與部分按鍵習慣。→ 保留核心功能鍵，提供切換前後對照並用 fixture 驗收。
@@ -114,6 +128,8 @@ LazyVim Extra 與 mason-lspconfig 負責 LSP 安裝意圖；`mason.nvim.ensure_i
 - [風險] 全域 trim fallback 可能破壞有語意空白。→ EditorConfig 優先、Markdown 與非一般 buffer 排除；無可靠判定時停止 fallback。
 - [風險] OSC 52 paste 可能被終端阻擋或等待。→ 自動 gate 只驗證 provider 選擇；copy/paste 分開人工驗收。
 - [風險] Project root 判定不同可能產生意外相對路徑。→ 共用 LazyVim root policy，root 不是祖先時回退絕對路徑。
+- [風險] 關閉 markdownlint diagnostics 可能隱藏團隊規範。→ 工具仍安裝，專案可透過自己的 Neovim override 或 CI 重新啟用。
+- [風險] 重跑部署可能覆蓋使用者手改的 active config。→ 內容相同時 no-op；不同時先保存固定 `.bak`，並在來源驗證失敗時停止。
 
 ## Migration Plan
 
@@ -124,5 +140,6 @@ LazyVim Extra 與 mason-lspconfig 負責 LSP 安裝意圖；`mason.nvim.ensure_i
 5. 更新文件，執行完整 pytest、Stylua、Bash／PowerShell 可用的語法檢查、ShellCheck 與 OpenSpec strict validation。
 6. 把相同檔案套到原始 repo，逐檔比對後 commit，不 push。
 7. 使用安裝後 acceptance 在受控使用者配置執行。只有本次啟用功能無 blocking error、代表性 LSP attach 且人工停止點有明確結果時，才宣稱 P0 完成。
+8. 以暫存 source／target 連續執行 Neovim 配置部署，驗證首次、相同內容重跑、既有 backup、來源更新與失敗停止條件。
 
 Rollback：還原實作 commit，恢復 setup 產生的上一份 Neovim 配置備份，重啟 Neovim 並重跑 baseline。不得刪除 Mason 或 Lazy data directory 來掩蓋設定問題。

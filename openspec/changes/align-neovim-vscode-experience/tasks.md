@@ -45,3 +45,12 @@
 - [x] 6.3 先在使用者層級開發副本完成全部 P0 gate，再把相同範圍逐檔套到原始 repo 並確認內容一致
 - [x] 6.4 只提交本 change 的實作、測試、文件與 OpenSpec artifacts；保留其他 dirty files，不 push
 - [x] 6.5 在交付摘要列出 P1／P2 非目標、Mason 版本漂移與尚未完成的人工驗收，不建立平行任務系統
+
+## 7. Markdown 診斷與重跑安裝 Follow-up
+
+- [x] 7.1 更新 design 與 delta spec，明確記錄 markdownlint diagnostics 預設停用與配置部署等冪邊界
+- [x] 7.2 先加入會失敗的 Markdown effective-linter 測試，確認停用 markdownlint 後仍保留 Marksman、Prettier 與 preview 宣告
+- [x] 7.3 先加入會失敗的部署測試，涵蓋首次、相同內容重跑、既有 backup、來源更新與錯誤停止
+- [x] 7.4 實作最小 Markdown override，以及 Linux／macOS 共用的 Neovim 配置部署 helper
+- [x] 7.5 執行完整 pytest、Neovim gate、Bash syntax、相關 ShellCheck、Stylua、diff check、OpenSpec strict 與安裝後 runtime 驗收
+- [x] 7.6 逐檔同步原始 repo、確認只提交本 follow-up 範圍並保留既有 dirty files，不 push

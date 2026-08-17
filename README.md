@@ -165,6 +165,8 @@ $ ./setup.sh
 
 首次啟動 Neovim 時，LazyVim 會下載外掛；開啟各語言 workspace 後，Mason 才會補齊對應 LSP。外掛存在不代表 LSP 已 attach，請以 `:LspInfo` 驗收。
 
+Linux／macOS 可重複執行 editor 安裝。Neovim 配置相同時直接略過；內容變更時，目前配置會保存為固定的 `~/.config/nvim.bak`，再部署新版，不會產生巢狀 backup。
+
 ```bash
 nvim   # 首次啟動會自動安裝插件
 ```

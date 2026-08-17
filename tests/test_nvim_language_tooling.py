@@ -87,3 +87,45 @@ def test_runtime_acceptance_uses_disposable_fixture_copy() -> None:
     assert 'mkdir -p "$RUNTIME_FIXTURE_DIR/.git"' in script
     assert 'file="$RUNTIME_FIXTURE_DIR/$relative_file"' in script
     assert 'file="$PROJECT_DIR/tests/fixtures/nvim-runtime/$relative_file"' not in script
+
+
+@pytest.mark.skipif(NVIM is None, reason="Neovim 未安裝")
+def test_markdownlint_diagnostics_are_disabled_without_removing_markdown_tools() -> None:
+    """預設不發布 Markdown 格式診斷，但保留語言、格式與 preview Extra。"""
+    plugin = PROJECT_ROOT / "nvim" / "lua" / "plugins" / "markdown.lua"
+    lua_probe = (
+        f"local ok,specs=pcall(dofile,{json.dumps(str(plugin))});"
+        "if not ok then io.stderr:write(tostring(specs)); os.exit(1) end;"
+        "local opts={linters_by_ft={markdown={'markdownlint-cli2'},"
+        "['markdown.mdx']={'markdownlint-cli2'},python={'ruff'}}};"
+        "local found=false;"
+        "for _,spec in ipairs(specs) do "
+        "if spec[1]=='mfussenegger/nvim-lint' then spec.opts(nil,opts); found=true end "
+        "end;"
+        "local result={found=found,markdown=opts.linters_by_ft.markdown==nil,"
+        "markdown_mdx=opts.linters_by_ft['markdown.mdx']==nil,"
+        "python=opts.linters_by_ft.python};"
+        "io.stdout:write(vim.json.encode(result)..'\\n')"
+    )
+    result = subprocess.run(
+        [NVIM, "--headless", "-u", "NONE", "-i", "NONE", f"+lua {lua_probe}", "+qa"],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stderr
+    state = json.loads(result.stdout)
+    lazyvim = json.loads((PROJECT_ROOT / "nvim" / "lazyvim.json").read_text())
+    tooling = _runtime_manifest()["tooling"]
+
+    assert state == {
+        "found": True,
+        "markdown": True,
+        "markdown_mdx": True,
+        "python": ["ruff"],
+    }
+    assert "lazyvim.plugins.extras.lang.markdown" in lazyvim["extras"]
+    assert "lazyvim.plugins.extras.formatting.prettier" in lazyvim["extras"]
+    assert {item["mason"] for item in tooling["lsp"]} >= {"marksman"}
+    assert {item["mason"] for item in tooling["tools"]} >= {"markdownlint-cli2"}

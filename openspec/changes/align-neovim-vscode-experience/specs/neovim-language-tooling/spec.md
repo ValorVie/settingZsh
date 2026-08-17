@@ -18,7 +18,7 @@ Neovim 配置 SHALL 為 PHP、Python、Rust、TypeScript／JavaScript、HTML／C
 | JSON | jsonls 與 SchemaStore |
 | YAML | yamlls 與 SchemaStore |
 | Docker／Compose | Docker 與 Compose language server、Hadolint |
-| Markdown | Marksman、markdownlint、TOC 與 preview |
+| Markdown | Marksman、Prettier、TOC 與 preview；markdownlint 工具保留但 diagnostics 預設停用 |
 
 #### Scenario: PHP 智慧提示
 
@@ -34,6 +34,11 @@ Neovim 配置 SHALL 為 PHP、Python、Rust、TypeScript／JavaScript、HTML／C
 
 - **WHEN** 使用者開啟 TypeScript、HTML、CSS、JSON、YAML、Dockerfile、Compose 或 Markdown fixture
 - **THEN** 對應的主要語言伺服器 SHALL attach，且 formatter／linter SHALL 不重複執行同一責任
+
+#### Scenario: Markdown 格式診斷預設停用
+
+- **WHEN** 使用者開啟含 MD013、MD031 或 MD040 問題的 Markdown 文件
+- **THEN** markdownlint SHALL NOT 發布 diagnostics，Marksman、Prettier、TOC 與 preview SHALL 維持可用
 
 ### Requirement: 編輯器工具與專案依賴分界
 

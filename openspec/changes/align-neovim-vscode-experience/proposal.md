@@ -7,10 +7,11 @@
 - **BREAKING**：固定使用 Snacks picker 與 Snacks Explorer，取代目前因安裝世代而變動的 fzf-lua／Telescope／Neo-tree 組合；搜尋與 explorer 介面會改變，但保留既有功能意圖。
 - 統一檔案、全文搜尋、explorer 與最近專案的排除規則，並保留顯示 ignored 項目的操作入口。
 - 明確固定 PHP 使用 Intelephense、Python 使用 Pyright + Ruff analysis + Black formatting，補上 YAML、Docker、HTML/CSS、Marksman 與專案型 PHPStan 整合。
-- 修正 Markdown 儲存行為：保留有語意的行尾空白，但不關閉 formatter；一般文字檔維持 final newline 與可預期的行尾空白處理。
+- 修正 Markdown 儲存行為：保留有語意的行尾空白與 formatter，並預設停用 markdownlint 格式診斷；一般文字檔維持 final newline 與可預期的行尾空白處理。
 - 保留絕對路徑複製，新增專案相對路徑與 `path:line` 快捷鍵，不引入新外掛。
 - 新增無網路的配置測試與安裝後 runtime 驗收，區分「已宣告」、「已安裝」、「已 attach」三種狀態。
 - 同步更新 editor guide 與 README，移除 Telescope、DAP 與語言工具的過期敘述。
+- 讓 Linux／macOS 的 Neovim 配置部署可安全重跑；相同內容直接 no-op，內容變更時不產生巢狀 backup。
 
 ## Capabilities
 

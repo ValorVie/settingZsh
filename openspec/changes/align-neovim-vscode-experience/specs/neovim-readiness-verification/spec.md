@@ -69,3 +69,22 @@
 
 - **WHEN** OSC 52 copy/paste、browser preview 或真實專案 LSP 尚未人工驗收
 - **THEN** 狀態 SHALL 標記為未驗證，不得記為通過
+
+### Requirement: Neovim 配置部署可安全重跑
+
+Linux 與 macOS 的 editor 安裝流程 SHALL 允許使用者重複部署相同 Neovim 配置，不得產生巢狀 backup、累加檔案或因既有 `.bak` 中止。
+
+#### Scenario: 首次部署與相同內容重跑
+
+- **WHEN** 目標不存在時部署一次，隨後以相同來源再次部署
+- **THEN** 第一次 SHALL 建立完整配置，第二次 SHALL 安全 no-op，目標內容與 backup 狀態 SHALL 不變
+
+#### Scenario: 既有配置或來源更新
+
+- **WHEN** 目標內容與來源不同，或固定 `.bak` 已存在
+- **THEN** 部署 SHALL 以目前目標更新固定 backup、套用完整來源，且 SHALL NOT 建立 `.bak/nvim` 或其他巢狀 backup
+
+#### Scenario: 來源或暫存驗證失敗
+
+- **WHEN** 來源缺少 `init.lua`、目標型態不安全或暫存副本不完整
+- **THEN** 部署 SHALL 非零停止，且 SHALL 保留原目標

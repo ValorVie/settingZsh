@@ -16,6 +16,9 @@ LAZYGIT_VERSION="0.44.1"
 RIPGREP_VERSION="14.1.1"
 FD_VERSION="10.2.0"
 
+# shellcheck source=lib/deploy_nvim_config.sh
+source "$SCRIPT_DIR/lib/deploy_nvim_config.sh"
+
 # =============================================================================
 # 共用函式
 # =============================================================================
@@ -219,12 +222,7 @@ install_editor_env() {
 
     # 7. 部署 Neovim 配置
     echo "=== 部署 Neovim 配置... ==="
-    if [ -d ~/.config/nvim ]; then
-        mv ~/.config/nvim ~/.config/nvim.bak
-        echo "既有 nvim 配置已備份至 ~/.config/nvim.bak"
-    fi
-    mkdir -p ~/.config
-    cp -r "$SCRIPT_DIR/nvim" ~/.config/nvim
+    deploy_nvim_config "$SCRIPT_DIR/nvim" "$HOME/.config/nvim"
 
     # 8. 合併 .zshrc editor 段
     echo "=== 合併 editor 設定至 .zshrc... ==="
