@@ -73,6 +73,9 @@ bindkey '^[w' kill-region
 bindkey '^[[A' history-substring-search-up
 bindkey '^[[B' history-substring-search-down
 
+# 允許互動式終端機使用註解
+setopt interactivecomments
+
 # History
 HISTSIZE=5000
 HISTFILE=~/.zsh_history
